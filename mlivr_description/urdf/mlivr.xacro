@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot name="MLIVR" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="./iiwa14.xacro"/>
+  <xacro:include filename="./mlivr_gripper.xacro"/>
+
+  <mujoco>
+    <compiler strippath="false"/>
+  </mujoco>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="50.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.75" ixy="0" ixz="0" iyy="0.75" iyz="0" izz="0.75"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.3"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.3 0.3 0.3"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <xacro:iiwa14 hardware_interface="PositionJointInterface" robot_name="limb_1" parent="base_link">
+    <origin xyz="0.0 0.15 0.0" rpy="0 ${radians(90)} ${radians(90)}"/>
+  </xacro:iiwa14>
+
+  <xacro:mlivr_gripper prefix="limb_1" parent="limb_1_link_7"/>
+
+  <xacro:iiwa14 hardware_interface="PositionJointInterface" robot_name="limb_2" parent="base_link">
+    <origin xyz="0.0 -0.15 0.0" rpy="0 ${radians(90)} ${radians(270)}"/>
+  </xacro:iiwa14>
+
+  <xacro:mlivr_gripper prefix="limb_2" parent="limb_2_link_7"/>
+
+</robot>

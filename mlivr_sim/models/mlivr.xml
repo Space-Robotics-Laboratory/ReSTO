@@ -1,0 +1,98 @@
+<mujoco model="MLIVR">
+  <compiler angle="radian"/>
+
+  <asset>
+    <mesh name="link_0" file="../../mlivr_description/meshes/iiwa14/collision/link_0.stl"/>
+    <mesh name="link_1" file="../../mlivr_description/meshes/iiwa14/collision/link_1.stl"/>
+    <mesh name="link_2" file="../../mlivr_description/meshes/iiwa14/collision/link_2.stl"/>
+    <mesh name="link_3" file="../../mlivr_description/meshes/iiwa14/collision/link_3.stl"/>
+    <mesh name="link_4" file="../../mlivr_description/meshes/iiwa14/collision/link_4.stl"/>
+    <mesh name="link_5" file="../../mlivr_description/meshes/iiwa14/collision/link_5.stl"/>
+    <mesh name="link_6" file="../../mlivr_description/meshes/iiwa14/collision/link_6.stl"/>
+    <mesh name="link_7" file="../../mlivr_description/meshes/iiwa14/collision/link_7.stl"/>
+  </asset>
+
+  <worldbody>
+    <body name="base_link">
+      <freejoint name="root_joint"/>
+      <inertial pos="0 0 0" mass="50" diaginertia="1 1 1"/>
+      <geom size="0.15 0.15 0.15" type="box"/>
+      <geom pos="0 0.15 0" quat="0.5 -0.5 0.5 0.5" type="mesh" mesh="link_0"/>
+      <geom pos="0 -0.15 0" quat="-0.5 -0.5 -0.5 0.5" type="mesh" mesh="link_0"/>
+      <body name="limb_1_link_1" pos="0 0.3075 0" quat="0.5 -0.5 0.5 0.5">
+        <inertial pos="0 -0.03 0.12" mass="4" diaginertia="0.1 0.09 0.02"/>
+        <joint name="limb_1_joint_1" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+        <geom type="mesh" mesh="link_1"/>
+        <body name="limb_1_link_2" pos="0 0 0.2025" quat="0 0 0.707107 0.707107">
+          <inertial pos="0.0003 0.059 0.042" quat="0.707107 0.707107 0 0" mass="4" diaginertia="0.05 0.044 0.018"/>
+          <joint name="limb_1_joint_2" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+          <geom type="mesh" mesh="link_2"/>
+          <body name="limb_1_link_3" pos="0 0.2045 0" quat="0 0 0.707107 0.707107">
+            <inertial pos="0 0.03 0.13" mass="3" diaginertia="0.08 0.075 0.01"/>
+            <joint name="limb_1_joint_3" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+            <geom type="mesh" mesh="link_3"/>
+            <body name="limb_1_link_4" pos="0 0 0.2155" quat="0.707107 0.707107 0 0">
+              <inertial pos="0 0.067 0.034" quat="0.707107 0.707107 0 0" mass="2.7" diaginertia="0.03 0.029 0.01"/>
+              <joint name="limb_1_joint_4" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+              <geom type="mesh" mesh="link_4"/>
+              <body name="limb_1_link_5" pos="0 0.1845 0" quat="0 0 0.707107 0.707107">
+                <inertial pos="0.0001 0.021 0.076" mass="1.7" diaginertia="0.02 0.018 0.005"/>
+                <joint name="limb_1_joint_5" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+                <geom type="mesh" mesh="link_5"/>
+                <body name="limb_1_link_6" pos="0 0 0.2155" quat="0.707107 0.707107 0 0">
+                  <inertial pos="0 0.0006 0.0004" quat="0.707107 0.707107 0 0" mass="1.8" diaginertia="0.005 0.0047 0.0036"/>
+                  <joint name="limb_1_joint_6" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+                  <geom type="mesh" mesh="link_6"/>
+                  <body name="limb_1_link_7" pos="0 0.081 0" quat="0 0 0.707107 0.707107">
+                    <inertial pos="0 -0.028125 0.023125" quat="0.525786 0.472809 -0.472809 0.525786" mass="0.8" diaginertia="0.00183418 0.00181738 0.0014332"/>
+                    <joint name="limb_1_joint_7" pos="0 0 0" axis="0 0 1" range="-3.05433 3.05433" actuatorfrcrange="-300 300" damping="0.5"/>
+                    <geom type="mesh" mesh="link_7"/>
+                    <geom size="0.03 0.025" pos="0 0 0.07" type="cylinder"/>
+                    <site name="limb_1_gripper_site" pos="0 0 0.095" size="0.01" rgba="0 1 0 1" group="1"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="limb_2_link_1" pos="0 -0.3075 0" quat="-0.5 -0.5 -0.5 0.5">
+        <inertial pos="0 -0.03 0.12" mass="4" diaginertia="0.1 0.09 0.02"/>
+        <joint name="limb_2_joint_1" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+        <geom type="mesh" mesh="link_1"/>
+        <body name="limb_2_link_2" pos="0 0 0.2025" quat="0 0 0.707107 0.707107">
+          <inertial pos="0.0003 0.059 0.042" quat="0.707107 0.707107 0 0" mass="4" diaginertia="0.05 0.044 0.018"/>
+          <joint name="limb_2_joint_2" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+          <geom type="mesh" mesh="link_2"/>
+          <body name="limb_2_link_3" pos="0 0.2045 0" quat="0 0 0.707107 0.707107">
+            <inertial pos="0 0.03 0.13" mass="3" diaginertia="0.08 0.075 0.01"/>
+            <joint name="limb_2_joint_3" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+            <geom type="mesh" mesh="link_3"/>
+            <body name="limb_2_link_4" pos="0 0 0.2155" quat="0.707107 0.707107 0 0">
+              <inertial pos="0 0.067 0.034" quat="0.707107 0.707107 0 0" mass="2.7" diaginertia="0.03 0.029 0.01"/>
+              <joint name="limb_2_joint_4" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+              <geom type="mesh" mesh="link_4"/>
+              <body name="limb_2_link_5" pos="0 0.1845 0" quat="0 0 0.707107 0.707107">
+                <inertial pos="0.0001 0.021 0.076" mass="1.7" diaginertia="0.02 0.018 0.005"/>
+                <joint name="limb_2_joint_5" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706" actuatorfrcrange="-300 300" damping="0.5"/>
+                <geom type="mesh" mesh="link_5"/>
+                <body name="limb_2_link_6" pos="0 0 0.2155" quat="0.707107 0.707107 0 0">
+                  <inertial pos="0 0.0006 0.0004" quat="0.707107 0.707107 0 0" mass="1.8" diaginertia="0.005 0.0047 0.0036"/>
+                  <joint name="limb_2_joint_6" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-300 300" damping="0.5"/>
+                  <geom type="mesh" mesh="link_6"/>
+                  <body name="limb_2_link_7" pos="0 0.081 0" quat="0 0 0.707107 0.707107">
+                    <inertial pos="0 -0.028125 0.023125" quat="0.525786 0.472809 -0.472809 0.525786" mass="0.8" diaginertia="0.00183418 0.00181738 0.0014332"/>
+                    <joint name="limb_2_joint_7" pos="0 0 0" axis="0 0 1" range="-3.05433 3.05433" actuatorfrcrange="-300 300" damping="0.5"/>
+                    <geom type="mesh" mesh="link_7"/>
+                    <geom size="0.03 0.025" pos="0 0 0.07" type="cylinder"/>
+                    <site name="limb_2_gripper_site" pos="0 0 0.095" size="0.01" rgba="0 1 0 1" group="1"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

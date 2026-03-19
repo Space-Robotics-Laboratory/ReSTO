@@ -1,0 +1,38 @@
+<mujoco model="iss_jem">
+
+  <asset>
+    <mesh name="iss_jem" file="./assets/iss_jem.stl"  scale="0.1 0.1 0.1"/>
+  </asset>
+
+  <worldbody>
+    <body name="iss_jem" pos="0 0 0">
+      <geom type="mesh" mesh="iss_jem" rgba="0.7 0.7 0.7 0.5" contype="0" conaffinity="0"/>
+      <!-- <geom type="box" size="3.2 1.0 0.01" pos="0 0 0.2" rgba="1 1 1 0.5"/> -->
+    </body>
+
+    <!-- <body name="handrail" pos="1.0 0 1.0" euler="0 0 0">
+      <geom type="box" size="0.0155 0.29 0.0155" rgba="0 0 1 0.5"/>
+      <site name="handrail_site" pos="0 0 0" euler="0 1.5708 0" size="0.01" rgba="0 0 1 1"/>
+    </body> -->
+
+    <!-- <body name="handrail_1" pos="0.02 -0.26 0.318" euler="0 0 0">
+      <geom type="box" size="0.0155 0.29 0.0155" rgba="0 0 1 0.5"/>
+      <site name="handrail_1_site_1" pos="0 0 0" euler="0 1.5708 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="handrail_1_site_2" pos="0 0.05 0" euler="0 1.5708 0" size="0.01" rgba="0 0 1 1"/>
+    </body>
+
+    <body name="handrail_2" pos="0.02 0.305 0.318" euler="0 0 0">
+      <geom type="box" size="0.0155 0.095 0.0155" rgba="0 0 1 0.5"/>
+      <site name="handrail_2_site_1" pos="0 0 0" euler="0 1.5708 0" size="0.01" rgba="0 0 1 1"/>
+    </body> -->
+
+    <body name="seattrack_1" pos="0.02 0.04 0.25" euler="0 0 0">
+      <geom type="box" size="0.0155 0.925 0.0155" rgba="0 0 1 0.5"/>
+      <site name="seattrack_1_site_1" pos="0 -0.5 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_2" pos="0 0 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_3" pos="0 0.5 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+    </body>
+
+  </worldbody>
+
+</mujoco>
