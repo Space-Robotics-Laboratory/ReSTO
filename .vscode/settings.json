@@ -15,7 +15,29 @@
     "files.trimTrailingWhitespace": false
   },
   // Code Spell Checker setting
-  "cSpell.ignoreWords": [],
+  "cSpell.ignoreWords": [
+    "buildtool",
+    "FONTSCALE",
+    "GLFW",
+    "GNUCXX",
+    "Imai",
+    "lastx",
+    "lasty",
+    "lookat",
+    "Masazumi",
+    "mjcb",
+    "MLIVR",
+    "MuJoCo",
+    "qfrc",
+    "qpos",
+    "qvel",
+    "rclcpp",
+    "schematypens",
+    "urdf",
+    "Wextra",
+    "Wpedantic",
+    "xoffset"
+  ],
   "cmake.ignoreCMakeListsMissing": true,
   "editor.formatOnSave": true,
   "editor.hover.delay": 600,
@@ -37,5 +59,6 @@
     "/opt/ros/humble/lib/python3.10/site-packages",
     "/opt/ros/humble/local/lib/python3.10/dist-packages"
   ],
-  "ros.distro": "humble"
+  "ros.distro": "humble",
+  "cSpell.words": []
 }

@@ -62,6 +62,14 @@ UseTab: Never
 # Include
 IncludeBlocks: Regroup
 IncludeCategories:
+  # Headers containing "mlivr_"
+  - Regex: ".*mlivr_.*"
+    Priority: 5
+    CaseSensitive: true
+  # Headers containing "mlivr_"
+  - Regex: <.*mlivr_.*>
+    Priority: 5
+    CaseSensitive: true
   # Project's headers
   - Regex: '.*\.hpp'
     Priority: 4

@@ -6,7 +6,7 @@
 
   <worldbody>
     <body name="iss_jem" pos="0 0 0">
-      <geom type="mesh" mesh="iss_jem" rgba="0.7 0.7 0.7 0.5" contype="0" conaffinity="0"/>
+      <geom type="mesh" mesh="iss_jem" rgba="0.7 0.7 0.7 1" contype="0" conaffinity="0"/>
       <!-- <geom type="box" size="3.2 1.0 0.01" pos="0 0 0.2" rgba="1 1 1 0.5"/> -->
     </body>
 

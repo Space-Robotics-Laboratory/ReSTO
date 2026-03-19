@@ -11,6 +11,7 @@
                 "/opt/openrobots/include/pinocchio/**",
                 "/opt/ros/humble/include/**",
                 "${workspaceFolder}/../../install/**",
+                "/home/masazumi/.mujoco/mujoco-3.4.0/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
