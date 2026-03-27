@@ -39,7 +39,7 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
   cmd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
     "joint_cmds", 10, std::bind(&MujocoSim::jointCmdCallback, this, std::placeholders::_1));
 
-  target_qpos_.resize(14, 0.0);  // 14-DOF (7x2)  // TODO
+  target_qpos_.resize(14, 0.0);  // 14-DOF (7x2)  // TODO Parameterize num dof
 
   // === Initialize MuJoCo ===
 
@@ -58,6 +58,31 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
     return;
   }
   d_ = mj_makeData(m_);
+
+  // Pose Extraction  // TODO: Activate only pose extraction mode set in yaml
+  // for (int i = 0; i < 50000; i++) {
+  //   mj_step(m_, d_);
+
+  //   // Overwrite the base pose at every step forcefully
+  //   d_->qpos[0] = 0.0;   // x
+  //   d_->qpos[1] = 0.25;  // y
+  //   d_->qpos[2] = 1.0;   // z
+  //   d_->qpos[3] = 1.0;   // qw
+  //   d_->qpos[4] = 0.0;   // qx
+  //   d_->qpos[5] = 0.0;   // qy
+  //   d_->qpos[6] = 0.0;   // qz
+
+  //   // Reduce the overall system speed by 90%
+  //   for (int j = 0; j < m_->nv; j++) {
+  //     d_->qvel[j] *= 0.1;
+  //   }
+  // }
+  // std::cout << "\n\n";
+  // std::cout << "<keyframe>\n  <key name=\"init_grasp\" qpos=\"";
+  // for (int i = 0; i < m_->nq; i++) {
+  //   std::cout << d_->qpos[i] << " ";
+  // }
+  // std::cout << "\"/>\n</keyframe>\n\n";
 
   // Load keyframe
   int key_id = mj_name2id(m_, mjOBJ_KEY, "init_grasp");
@@ -163,7 +188,7 @@ void MujocoSim::simLoop()
   cam_.lookat[2] = 1.0;
 
   sensor_msgs::msg::JointState joint_msg;
-  // joint_msg.name = {"left_joint1", ...}; // TODO
+  // joint_msg.name = {"left_joint1", ...}; // TODO Set joint names
 
   auto last_pub_time = this->now();
   const double kPubFrequency = 60.0;  // Hz
