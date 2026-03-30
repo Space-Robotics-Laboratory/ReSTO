@@ -17,6 +17,7 @@
   // Code Spell Checker setting
   "cSpell.ignoreWords": [
     "buildtool",
+    "Eigen",
     "FONTSCALE",
     "GLFW",
     "GNUCXX",
