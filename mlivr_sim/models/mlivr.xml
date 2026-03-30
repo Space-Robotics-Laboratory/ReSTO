@@ -1,6 +1,10 @@
 <mujoco model="MLIVR">
   <compiler angle="radian"/>
 
+  <default>
+    <joint armature="1.0" frictionloss="1.0"/>
+  </default>
+
   <asset>
     <mesh name="link_0" file="../../mlivr_description/meshes/iiwa14/collision/link_0.stl"/>
     <mesh name="link_1" file="../../mlivr_description/meshes/iiwa14/collision/link_1.stl"/>

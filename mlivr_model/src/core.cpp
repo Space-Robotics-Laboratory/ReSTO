@@ -29,6 +29,11 @@ RobotCore::RobotCore(const std::string & urdf_path)
 
     model_.gravity.linear() = Eigen::Vector3d::Zero();
 
+    // === Synchronize the physical parameters on the MuJoCo side with Pinocchio ===
+    const int num_actuated_joints = model_.nv - 6;
+    model_.rotorInertia.tail(num_actuated_joints).setConstant(0.5);  // armature
+    model_.friction.tail(num_actuated_joints).setConstant(0.5);      // damping
+
     // For debug
     std::cout << "[mlivr_model] Successfully loaded URDF." << std::endl;
     std::cout << "[mlivr_model] - Number of joints: " << model_.njoints << std::endl;

@@ -203,6 +203,7 @@ void MujocoSim::simLoop()
       joint_msg.position.clear();
       for (int i = 0; i < 14; i++) {
         joint_msg.position.push_back(d_->qpos[7 + i]);
+        joint_msg.velocity.push_back(d_->qvel[6 + i]);
       }
       joint_state_pub_->publish(joint_msg);
       last_pub_time = current_time;
