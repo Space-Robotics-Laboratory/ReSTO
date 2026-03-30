@@ -16,7 +16,7 @@ include_directories(${EIGEN3_INCLUDE_DIRS})
 ament_auto_add_library(${PROJECT_NAME}
   src/core.cpp
   src/kinematics.cpp
-  # src/dynamics.cpp
+  src/dynamics.cpp
 )
 
 # install header files
