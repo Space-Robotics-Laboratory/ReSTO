@@ -13,6 +13,9 @@ ament_auto_find_build_dependencies()
 ament_auto_add_library(gj_control
   src/gj_control.cpp
 )
+target_link_libraries(gj_control
+  trajectory_generator::trajectory_generator
+)
 rclcpp_components_register_nodes(gj_control
   "mlivr_control::GJControl"
 )

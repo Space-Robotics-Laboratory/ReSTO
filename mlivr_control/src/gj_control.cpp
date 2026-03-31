@@ -40,6 +40,8 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
   target_q_.resize(kTotalNumJoints, 0.0);
   is_initialized_ = false;
 
+  tf_transformer_ = std::make_unique<coordinate_transformer::CoordinateTransformer>(this);
+
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
@@ -58,72 +60,12 @@ void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
 
   if (!is_initialized_) {
     target_q_ = current_q_;
-    is_initialized_ = true;
+
+    if (this->startTrajectory()) {
+      is_initialized_ = true;
+    }
   }
 }
-
-// void GJControl::controlLoop()
-// {
-//   std::lock_guard<std::mutex> lock(state_mutex_);
-//   if (!is_initialized_) return;
-
-//   // --- 1. 一般化座標 q の構築 (ベースは固定 [0,0,0, 1] とする) ---
-//   Eigen::VectorXd q = Eigen::VectorXd::Zero(21);
-//   q(6) = 1.0;
-//   for (int i = 0; i < 14; ++i) {
-//     q(7 + i) = current_q_[i];
-//   }
-
-//   // --- 2. 順運動学(FK)と標準ヤコビアンの計算 ---
-//   std::string target_frame = "limb_1_link_ee";  // ※URDFの手先リンク名
-//   pinocchio::SE3 ee_pose;
-//   Eigen::MatrixXd J_full;
-//   try {
-//     ee_pose = kinematics_->solveFK(q, target_frame);
-//     J_full = kinematics_->computeJacobian(q, target_frame);
-//   } catch (const std::exception & e) {
-//     RCLCPP_ERROR_ONCE(this->get_logger(), "Error: %s", e.what());
-//     return;
-//   }
-
-//   // --- 3. 左腕のヤコビアンの抽出 ---
-//   Eigen::MatrixXd J_m = J_full.rightCols(14);
-//   Eigen::MatrixXd J_left = J_m.middleCols(0, 7);
-
-//   // --- 4. 目標手先速度 (ベース座標系基準) の設定 ---
-//   static double t = 0.0;
-//   t += 0.01;  // 100Hz
-//   Eigen::VectorXd v_target_base = Eigen::VectorXd::Zero(6);
-//   // Z方向(腕の長手方向)に振幅5cmでゆっくり往復運動させる
-//   v_target_base(2) = 0.5 * std::sin(2.0 * M_PI * 0.5 * t);
-
-//   // --- 5. 目標速度をLOCAL座標系に変換 (★爆発回避の要) ---
-//   // PinocchioのLOCALヤコビアンと整合させるため、ワールド目標速度を回転行列でローカルに変換
-//   Eigen::Matrix3d R = ee_pose.rotation();
-//   Eigen::VectorXd v_target_local = Eigen::VectorXd::Zero(6);
-//   v_target_local.head<3>() = R.transpose() * v_target_base.head<3>();
-//   v_target_local.tail<3>() = R.transpose() * v_target_base.tail<3>();
-
-//   // --- 6. 逆運動学 (IK) の計算 (DLS法) ---
-//   double lambda = 0.0;  // 0.1のダンピングで特異点付近の計算爆発を防ぐ
-//   Eigen::MatrixXd A =
-//     J_left * J_left.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(6, 6);
-//   Eigen::VectorXd q_dot_cmd_left = J_left.transpose() * A.inverse() * v_target_local;
-
-//   // --- 7. 指令角度の更新 (積分) ---
-//   double dt = 0.01;
-//   for (int i = 0; i < 7; ++i) {
-//     // 速度を ±2.0 rad/s にクリップして異常な飛びを防止
-//     double safe_cmd = std::clamp(q_dot_cmd_left(i), -200.0, 200.0);
-//     // current_q_ ではなく target_q_ に足し込むことでチャタリングを防止
-//     target_q_[i] += safe_cmd * dt;
-//   }
-
-//   // --- 8. MuJoCoへPublish ---
-//   std_msgs::msg::Float64MultiArray cmd_msg;
-//   cmd_msg.data = target_q_;
-//   cmd_pub_->publish(cmd_msg);
-// }
 
 void GJControl::controlLoop()
 {
@@ -138,8 +80,8 @@ void GJControl::controlLoop()
   }
 
   // --- 2. 順運動学(FK)と両腕の一般化ヤコビアンの計算 ---
-  std::string frame_L = "limb_1_link_ee";  // 左腕の手先リンク名
-  std::string frame_R = "limb_2_link_ee";  // 右腕の手先リンク名 (※要確認)
+  std::string frame_L = "limb_1_link_gripper";  // 左腕の手先リンク名
+  std::string frame_R = "limb_2_link_gripper";  // 右腕の手先リンク名 (※要確認)
 
   pinocchio::SE3 pose_L, pose_R;
   Eigen::MatrixXd J_gen_L, J_gen_R;
@@ -154,56 +96,176 @@ void GJControl::controlLoop()
     return;
   }
 
+  pinocchio::SE3 current_pose_R_in_L = pose_L.actInv(pose_R);
+  Eigen::Vector3d p = current_pose_R_in_L.translation();
+
+  // 1秒に1回くらいプリントして確認
+  // static int log_counter = 0;
+  // if (log_counter++ % 100 == 0) {
+  //   RCLCPP_INFO(
+  //     this->get_logger(), "Right Arm Position from Left Arm: [x: %.3f, y: %.3f, z: %.3f]", p.x(),
+  //     p.y(), p.z());
+  // }
+
   // --- 3. ヤコビアンの結合 (12行 x 14列) ---
   Eigen::MatrixXd J_stacked(12, 14);
   J_stacked << J_gen_L, J_gen_R;
 
-  // --- 4. 目標速度 (ワールド基準) の設定 ---
-  static double t = 0.0;
-  t += 0.01;  // 100Hz
+  // =======================================
 
-  // 左腕：Z方向に振幅5cmの往復運動
-  Eigen::VectorXd v_target_base_L = Eigen::VectorXd::Zero(6);
-  v_target_base_L(2) = 0.5 * std::sin(2.0 * M_PI * 0.5 * t);
-
-  // 右腕：空間上で「停止」させたいのでゼロ
-  Eigen::VectorXd v_target_base_R = Eigen::VectorXd::Zero(6);
-
-  // --- 5. 目標速度を各ローカル座標系に変換 ---
-  Eigen::Matrix3d R_L = pose_L.rotation();
-  Eigen::VectorXd v_target_local_L = Eigen::VectorXd::Zero(6);
-  v_target_local_L.head<3>() = R_L.transpose() * v_target_base_L.head<3>();
-  v_target_local_L.tail<3>() = R_L.transpose() * v_target_base_L.tail<3>();
-
-  // ※ゼロベクトルなので変換しなくてもゼロですが、将来的な拡張のために型を揃えます
-  Eigen::Matrix3d R_R = pose_R.rotation();
+  // --- 目標速度の計算 (フィードバックなし・開ループ) ---
+  Eigen::VectorXd v_target_local_L = Eigen::VectorXd::Zero(6);  // 左腕は動かさない
   Eigen::VectorXd v_target_local_R = Eigen::VectorXd::Zero(6);
-  v_target_local_R.head<3>() = R_R.transpose() * v_target_base_R.head<3>();
-  v_target_local_R.tail<3>() = R_R.transpose() * v_target_base_R.tail<3>();
 
-  // --- 6. 目標速度ベクトルの結合 (12次元) ---
+  if (is_trajectory_active_) {
+    double t = this->now().seconds() - trajectory_start_time_;
+    if (t > 5.0) t = 5.0;  // 5秒で停止
+
+    // 1. スプラインから現在時刻の【目標速度】を取得 (すべて limb_1 座標系)
+    Eigen::VectorXd v_spline = Eigen::VectorXd::Zero(6);
+    v_spline.head<3>() = pos_spline_->getVelocity(t);
+    v_spline.tail<3>() = ori_spline_->getAngularVelocity(t);
+
+    // PinocchioのMotion型（空間速度）に変換
+    pinocchio::Motion v_ff_L1(v_spline);
+
+    // 2. 現在の手先 Pose (limb_1 から見た limb_2)
+    // ※pose_L, pose_R は上で計算済みの solveFK の結果
+    pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
+
+    // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に直接変換
+    // actInv() は回転行列だけでなく、2点間の並進オフセットによる遠心力・コリオリ効果(ω x r)も正しく処理します
+    pinocchio::Motion v_ff_local_R = L1_to_R.actInv(v_ff_L1);
+
+    // フィードバックを使わず、純粋なスプライン速度のみを指令値とする
+    v_target_local_R = v_ff_local_R.toVector();
+  }
+
+  // --- 結合 ---
   Eigen::VectorXd v_stacked = Eigen::VectorXd::Zero(12);
   v_stacked.head<6>() = v_target_local_L;
   v_stacked.tail<6>() = v_target_local_R;
 
-  // --- 7. 全身逆運動学 (IK) の計算 (DLS法) ---
-  // J_stacked(12x14) を使って、一気に14関節の指令速度 q_dot_cmd_all を解く
-  double lambda = 0.1;
+  // ======================================
+
+  // // --- 目標速度と位置フィードバックの計算 ---
+  // Eigen::VectorXd v_target_local_L = Eigen::VectorXd::Zero(6);  // 左腕(Weld側)は動かさない
+  // Eigen::VectorXd v_target_local_R = Eigen::VectorXd::Zero(6);
+
+  // if (is_trajectory_active_) {
+  //   double t = this->now().seconds() - trajectory_start_time_;
+  //   if (t > 5.0) t = 5.0;  // 5秒で停止
+
+  //   // 1. スプラインから現在時刻の【目標位置・姿勢・速度】を取得 (すべて limb_1 座標系)
+  //   Eigen::Vector3d p_target = pos_spline_->getPosition(t);
+  //   Eigen::Quaterniond q_target = ori_spline_->getOrientation(t);
+  //   pinocchio::SE3 SE3_target(q_target.toRotationMatrix(), p_target);
+
+  //   // limb_1 座標系における目標空間速度 (Motion)
+  //   pinocchio::Motion v_ff_L1(pos_spline_->getVelocity(t), ori_spline_->getAngularVelocity(t));
+
+  //   // 2. 現在の手先 Pose (limb_1 座標系から見た limb_2)
+  //   pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
+
+  //   // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に変換
+  //   // L1_to_R.actInv() は、空間速度ベクトルを正確に別のフレームに投影します
+  //   pinocchio::Motion v_ff_local = L1_to_R.actInv(v_ff_L1);
+
+  //   // 4. 【フィードバック計算】 limb_2 ローカル座標系の誤差空間速度
+  //   pinocchio::Motion error_motion = pinocchio::log6(L1_to_R.actInv(SE3_target));
+
+  //   // 5. 最終的な指令速度 = フィードフォワード + フィードバック (Kp)
+  //   double Kp = 10.0;  // ゲインを高めに設定して追従性を上げる
+  //   v_target_local_R = v_ff_local.toVector() + Kp * error_motion.toVector();
+  // }
+
+  // // --- 結合 ---
+  // Eigen::VectorXd v_stacked = Eigen::VectorXd::Zero(12);
+  // v_stacked.head<6>() = v_target_local_L;
+  // v_stacked.tail<6>() = v_target_local_R;
+
+  // =======================================
+
+  // --- IK計算と角度更新 ---
+  double lambda = 0.0;
   Eigen::MatrixXd A =
     J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
   Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
 
-  // --- 8. 指令角度の更新 (全14関節) ---
   double dt = 0.01;
-  for (int i = 0; i < 14; ++i) {  // 0~6: 左腕, 7~13: 右腕
-    double safe_cmd = std::clamp(q_dot_cmd_all(i), -20.0, 20.0);
+  for (int i = 0; i < 14; ++i) {
+    double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
     target_q_[i] += safe_cmd * dt;
   }
 
-  // --- 9. MuJoCoへPublish ---
   std_msgs::msg::Float64MultiArray cmd_msg;
   cmd_msg.data = target_q_;
   cmd_pub_->publish(cmd_msg);
+}
+
+bool GJControl::startTrajectory()
+{
+  // --- 1. 目標把持点の取得 (TF使用) ---
+  std::string target_site = "seattrack_1_site_1";  // 右手が向かう目標
+  std::string base_frame = "limb_1_gripper_site";  // 左手(固定端)を基準座標とする
+
+  // tf_transformer_を使って、左手基準の目標位置を取得
+  auto tf_msg_opt = tf_transformer_->getTransformMsg(target_site, base_frame);
+  if (!tf_msg_opt) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 1000, "Waiting for TF: %s -> %s", target_site.c_str(),
+      base_frame.c_str());
+    return false;
+  }
+  auto tf_msg = tf_msg_opt.value();
+  Eigen::Vector3d target_pos(
+    tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z);
+  Eigen::Quaterniond target_quat(
+    tf_msg.transform.rotation.w, tf_msg.transform.rotation.x, tf_msg.transform.rotation.y,
+    tf_msg.transform.rotation.z);
+
+  // --- 2. 現在の手先位置の取得 (FK使用) ---
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(21);
+  q(6) = 1.0;
+  for (int i = 0; i < 14; ++i) q(7 + i) = current_q_[i];
+
+  pinocchio::SE3 pose_L = kinematics_->solveFK(q, "limb_1_link_gripper");
+  pinocchio::SE3 pose_R = kinematics_->solveFK(q, "limb_2_link_gripper");
+
+  // 左手座標系から見た右手(limb_2)の現在のPose
+  pinocchio::SE3 current_pose_R_in_L = pose_L.actInv(pose_R);
+  Eigen::Vector3d start_pos = current_pose_R_in_L.translation();
+  Eigen::Quaterniond start_quat(current_pose_R_in_L.rotation());
+
+  target_pos = start_pos + Eigen::Vector3d(0.0, -0.5, -0.2);
+  target_quat = start_quat;
+
+  // --- 3. 自作ライブラリによる軌道制約の作成 ---
+  double duration = 5.0;  // 5秒間で移動
+
+  // 位置の制約 (開始0秒で速度0、終了5秒で速度0)
+  trajectory_generator::VectorStateConstraint start_p_c{
+    0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  trajectory_generator::VectorStateConstraint end_p_c{
+    duration, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
+
+  // 姿勢の制約
+  trajectory_generator::AngularStateConstraint start_o_c{
+    0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  trajectory_generator::AngularStateConstraint end_o_c{
+    duration, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
+
+  // --- 4. スプラインの生成 ---
+  pos_spline_ = std::make_unique<trajectory_generator::VectorSpline>(pos_constraints, 3);
+  ori_spline_ = std::make_unique<trajectory_generator::OrientationSpline>(ori_constraints);
+
+  trajectory_start_time_ = this->now().seconds();
+  is_trajectory_active_ = true;
+  RCLCPP_INFO(this->get_logger(), "Trajectory generation completed. Started tracking.");
+
+  return true;  // ★追加: 成功したことをコールバックに伝える
 }
 
 }  // namespace mlivr_control
