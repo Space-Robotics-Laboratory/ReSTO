@@ -28,9 +28,9 @@
 
     <body name="seattrack_1" pos="0.02 0.04 0.25" euler="0 0 0">
       <geom type="box" size="0.0155 0.925 0.0155" rgba="0 0 1 0.5"/>
-      <site name="seattrack_1_site_1" pos="0 -0.5 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
-      <site name="seattrack_1_site_2" pos="0 0 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
-      <site name="seattrack_1_site_3" pos="0 0.5 0" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_1" pos="0 -0.5 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_2" pos="0 0 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_3" pos="0 0.5 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
     </body>
 
   </worldbody>
