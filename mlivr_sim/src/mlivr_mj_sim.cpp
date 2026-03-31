@@ -39,6 +39,8 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
   cmd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
     "joint_cmds", 10, std::bind(&MujocoSim::jointCmdCallback, this, std::placeholders::_1));
 
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+
   target_qpos_.resize(14, 0.0);  // 14-DOF (7x2)  // TODO Parameterize num dof
 
   // === Initialize MuJoCo ===
@@ -216,6 +218,8 @@ void MujocoSim::simLoop()
 
     glfwSwapBuffers(window_);
     glfwPollEvents();
+
+    broadcastSiteTransforms();
   }
 
   mjr_freeContext(&con_);
@@ -284,6 +288,53 @@ void MujocoSim::mouseMoveCallback(GLFWwindow * window, double xpos, double ypos)
 
   mjv_moveCamera(
     instance_->m_, action, dx / height, dy / height, &instance_->scn_, &instance_->cam_);
+}
+
+void MujocoSim::broadcastSiteTransforms()
+{
+  if (!m_ || !d_) return;
+
+  rclcpp::Time now = this->now();
+  std::vector<geometry_msgs::msg::TransformStamped> transforms;
+  transforms.reserve(m_->nsite);
+
+  for (int i = 0; i < m_->nsite; ++i) {
+    const char * site_name = mj_id2name(m_, mjOBJ_SITE, i);
+
+    if (!site_name) continue;
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    tf_msg.header.stamp = now;
+    tf_msg.header.frame_id = "world";
+    tf_msg.child_frame_id = std::string(site_name);
+
+    // --- Get translation ---
+    // d_->site_xpos = [x0, y0, z0, x1, y1, z1, ...]
+    tf_msg.transform.translation.x = d_->site_xpos[3 * i + 0];
+    tf_msg.transform.translation.y = d_->site_xpos[3 * i + 1];
+    tf_msg.transform.translation.z = d_->site_xpos[3 * i + 2];
+
+    // --- Get rotation and convert to quaternion ---
+    // d_->site_xmat = [R00, R01, R02, R10... ]
+    int mat_offset = 9 * i;
+    Eigen::Matrix3d R;
+    R << d_->site_xmat[mat_offset + 0], d_->site_xmat[mat_offset + 1],
+      d_->site_xmat[mat_offset + 2], d_->site_xmat[mat_offset + 3], d_->site_xmat[mat_offset + 4],
+      d_->site_xmat[mat_offset + 5], d_->site_xmat[mat_offset + 6], d_->site_xmat[mat_offset + 7],
+      d_->site_xmat[mat_offset + 8];
+
+    Eigen::Quaterniond q(R);
+    tf_msg.transform.rotation.w = q.w();
+    tf_msg.transform.rotation.x = q.x();
+    tf_msg.transform.rotation.y = q.y();
+    tf_msg.transform.rotation.z = q.z();
+
+    transforms.push_back(tf_msg);
+  }
+
+  if (!transforms.empty()) {
+    tf_broadcaster_->sendTransform(transforms);
+  }
 }
 
 }  // namespace mlivr_mj_sim
