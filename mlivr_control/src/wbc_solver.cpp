@@ -72,7 +72,7 @@ bool WbcSolver::computeTrajectory(
   local_offset.translation() = local_translation_offset;
   pinocchio::SE3 target_swing_pose = start_swing_pose * local_offset;
 
-  int T = params_.horizon_steps;
+  int T = params_.solver.horizon_steps;
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
 
   for (int i = 0; i < T; ++i) {
@@ -128,27 +128,27 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
     state_, swing_id, target_pose, actuation_->get_nu());
   costs->addCost(
     "swing_goal_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
-    params_.weight_swing_goal);
+    params_.weights.swing_goal);
 
   // State regularization
   auto x_residual =
     std::make_shared<crocoddyl::ResidualModelState>(state_, x0, actuation_->get_nu());
   costs->addCost(
     "state_reg_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
-    params_.weight_state_reg);
+    params_.weights.state_reg);
 
   // Minimize torque input
   auto u_residual = std::make_shared<crocoddyl::ResidualModelControl>(state_, actuation_->get_nu());
   costs->addCost(
     "control_reg_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, u_residual),
-    params_.weight_control_reg);
+    params_.weights.control_reg);
 
   // Differential-Algebraic Model (DAM)
   auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
     state_, actuation_, contacts, costs, 0.0, true);
 
   // Integrated Atmospheric Model (IAM) (Computing the state one step ahead using Euler integration)
-  return std::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, params_.dt);
+  return std::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, params_.solver.dt);
 }
 
 }  // namespace mlivr_control

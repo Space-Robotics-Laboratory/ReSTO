@@ -28,13 +28,23 @@
 namespace mlivr_control
 {
 
-struct WbcSolverParams
+struct SolverParams
 {
   int horizon_steps = 100;
   double dt = 0.01;
-  double weight_swing_goal = 1e4;
-  double weight_state_reg = 1e-1;
-  double weight_control_reg = 1e-4;
+};
+
+struct WeightParams
+{
+  double swing_goal = 1e4;
+  double state_reg = 1e-1;
+  double control_reg = 1e-4;
+};
+
+struct WbcSolverParams
+{
+  SolverParams solver;
+  WeightParams weights;
 };
 
 class WbcSolver
