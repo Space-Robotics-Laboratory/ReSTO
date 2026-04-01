@@ -1,8 +1,8 @@
 <mujoco model="init_state">
 
   <equality>
-    <weld site1="limb_1_gripper_site" site2="seattrack_1_site_3" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/>
-    <weld site1="limb_2_gripper_site" site2="seattrack_1_site_2" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/>
+    <!-- <weld site1="limb_1_gripper_site" site2="seattrack_1_site_3" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/> -->
+    <!-- <weld site1="limb_2_gripper_site" site2="seattrack_1_site_2" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/> -->
   </equality>
 
   <keyframe>
@@ -12,7 +12,7 @@
   </keyframe>
 
   <keyframe>
-    <key name="init_grasp" qpos="0 0.25 1
+    <key name="init_grasp" qpos="0 0.25 1.5
                                  1 0 0 0
                                  -0.00797465 1.22167 -0.0351882 -1.49694 -0.0247634 -1.14732 1.614
                                  0.000610517 1.39538 0.046473 -1.37608 0.0120037 -1.20218 -1.62091 "/>
