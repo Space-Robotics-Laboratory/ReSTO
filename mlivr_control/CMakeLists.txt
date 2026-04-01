@@ -25,6 +25,7 @@ ament_auto_add_executable(gj_control_node
 
 ament_auto_add_library(wb_control
   src/wb_control.cpp
+  src/wbc_solver.cpp
 )
 target_link_libraries(wb_control
   trajectory_generator::trajectory_generator

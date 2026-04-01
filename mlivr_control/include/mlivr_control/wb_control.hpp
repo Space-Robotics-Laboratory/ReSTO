@@ -18,27 +18,15 @@
 #include <Eigen/Dense>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include <crocoddyl/core/costs/cost-sum.hpp>
-#include <crocoddyl/core/costs/residual.hpp>
-#include <crocoddyl/core/integrator/euler.hpp>
-#include <crocoddyl/core/residuals/control.hpp>
-#include <crocoddyl/core/solvers/fddp.hpp>
-#include <crocoddyl/core/utils/callbacks.hpp>
-#include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
-#include <crocoddyl/multibody/actuations/floating-base.hpp>
-#include <crocoddyl/multibody/contacts/contact-6d.hpp>
-#include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
-#include <crocoddyl/multibody/residuals/frame-placement.hpp>
-#include <crocoddyl/multibody/residuals/state.hpp>
-#include <crocoddyl/multibody/states/multibody.hpp>
-#include <pinocchio/multibody/data.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.hpp"
+#include "mlivr_control/wbc_solver.hpp"
 #include "mlivr_model/core.hpp"
 #include "mlivr_model/dynamics.hpp"
 #include "mlivr_model/kinematics.hpp"
@@ -51,7 +39,6 @@ class WBControl : public rclcpp::Node
 public:
   MLIVR_CONTROL_PUBLIC
   explicit WBControl(const rclcpp::NodeOptions & options);
-
   virtual ~WBControl() = default;
 
 private:
@@ -61,25 +48,18 @@ private:
 
   bool computeTrajectory();
 
-  std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
-    const Eigen::VectorXd & x0, const std::string & fixed_frame, const pinocchio::SE3 & fixed_pose,
-    const std::string & swing_frame, const pinocchio::SE3 & target_pose);
-
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;
   std::shared_ptr<pinocchio::Model> model_ptr_;
-  std::shared_ptr<pinocchio::Data> data_ptr_;
 
-  std::shared_ptr<crocoddyl::StateMultibody> state_;
-  std::shared_ptr<crocoddyl::ActuationModelFloatingBase> actuation_;
+  std::unique_ptr<WbcSolver> wbc_solver_;
 
   std::vector<double> current_q_;
-  bool is_initialized_ = false;
 
-  std::vector<Eigen::VectorXd> optimized_xs_;
+  bool is_initialized_ = false;
   size_t playback_idx_ = 0;
 };
 
