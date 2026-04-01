@@ -28,15 +28,26 @@
 namespace mlivr_control
 {
 
+struct WbcSolverParams
+{
+  int horizon_steps = 100;
+  double dt = 0.01;
+  double weight_swing_goal = 1e4;
+  double weight_state_reg = 1e-1;
+  double weight_control_reg = 1e-4;
+};
+
 class WbcSolver
 {
 public:
-  explicit WbcSolver(std::shared_ptr<pinocchio::Model> model);
+  explicit WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverParams & params);
   ~WbcSolver() = default;
 
   bool computeTrajectory(
     const std::vector<double> & current_q_14, const std::string & fixed_frame,
     const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset);
+
+  void setParams(const WbcSolverParams & params) { params_ = params; }
 
   const std::vector<Eigen::VectorXd> & getOptimizedXs() const { return optimized_xs_; }
 
@@ -52,6 +63,8 @@ private:
   std::shared_ptr<crocoddyl::ActuationModelFloatingBase> actuation_;
 
   std::vector<Eigen::VectorXd> optimized_xs_;
+
+  WbcSolverParams params_;
 };
 
 }  // namespace mlivr_control

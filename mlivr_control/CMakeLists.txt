@@ -37,6 +37,14 @@ ament_auto_add_executable(wb_control_node
   src/wb_control_node.cpp
 )
 
+install(
+  DIRECTORY
+    config
+    launch
+  DESTINATION
+    share/${PROJECT_NAME}/
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

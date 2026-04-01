@@ -33,13 +33,20 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   timer_ = this->create_wall_timer(
     std::chrono::milliseconds(10), std::bind(&WBControl::publishCommandStep, this));
 
+  // ROS 2 parameters
+  WbcSolverParams params;
+  params.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
+  params.dt = this->declare_parameter<double>("solver.dt", 0.01);
+  params.weight_swing_goal = this->declare_parameter<double>("solver.swing_goal", 1e4);
+  params.weight_state_reg = this->declare_parameter<double>("solver.state_reg", 1e-1);
+  params.weight_control_reg = this->declare_parameter<double>("solver.control_reg", 1e-4);
+
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
-
   robot_core_ = std::make_unique<mlivr_model::RobotCore>(urdf_path);
   model_ptr_ = std::make_shared<pinocchio::Model>(robot_core_->getModel());
 
-  wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_);
+  wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
 
   current_q_.resize(14, 0.0);
 
