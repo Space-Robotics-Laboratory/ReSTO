@@ -26,6 +26,7 @@
 #include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
 #include <crocoddyl/multibody/contacts/contact-6d.hpp>
 #include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
+#include <crocoddyl/multibody/residuals/centroidal-momentum.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <pinocchio/algorithm/frames.hpp>
@@ -83,7 +84,9 @@ bool WbcSolver::computeTrajectory(
       (1.0 - s) * start_swing_pose.translation() + s * target_swing_pose.translation();
 
     TaskPhase current_phase;
-    current_phase.active_contacts[fixed_frame] = fixed_pose;
+    // current_phase.active_contacts[fixed_frame] = fixed_pose;
+    // current_phase.swing_targets[swing_frame] = current_target;
+    current_phase.swing_targets[fixed_frame] = fixed_pose;
     current_phase.swing_targets[swing_frame] = current_target;
 
     auto model = createActionModel(x0, current_phase);
@@ -91,7 +94,9 @@ bool WbcSolver::computeTrajectory(
   }
 
   TaskPhase terminal_phase;
-  terminal_phase.active_contacts[fixed_frame] = fixed_pose;
+  // terminal_phase.active_contacts[fixed_frame] = fixed_pose;
+  // terminal_phase.swing_targets[swing_frame] = target_swing_pose;
+  terminal_phase.swing_targets[fixed_frame] = fixed_pose;
   terminal_phase.swing_targets[swing_frame] = target_swing_pose;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
@@ -179,6 +184,15 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   costs->addCost(
     "control_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, u_residual),
     params_.weights.control_reg);
+
+  // // ベースと全関節の動きによって生じる空間全体の運動量(h = [linear, angular])を計算し、
+  // // それがゼロ(Force::Zero)から変動しないようにペナルティを与える
+  // auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
+  //   state_, Eigen::VectorXd::Zero(6), actuation_->get_nu());
+
+  // costs->addCost(
+  //   "momentum_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual),
+  //   1e3);  // 重みで調整
 
   // Differential-Algebraic Model (DAM)
   auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
