@@ -16,6 +16,7 @@
 
 #include <iostream>
 
+#include <crocoddyl/core/activations/quadratic-barrier.hpp>
 #include <crocoddyl/core/costs/cost-sum.hpp>
 #include <crocoddyl/core/costs/residual.hpp>
 #include <crocoddyl/core/integrator/euler.hpp>
@@ -138,6 +139,34 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
       std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
       params_.weights.swing_goal);
   }
+
+  // Dynamic addition of limit constraints (barrier functions)
+
+  // // State limit
+  // Eigen::VectorXd x_lb = state_->get_lb();
+  // Eigen::VectorXd x_ub = state_->get_ub();
+  // crocoddyl::ActivationBounds x_bounds(x_lb, x_ub);
+  // auto x_limit_activation = std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(x_bounds);
+
+  // auto x_limit_residual =
+  //   std::make_shared<crocoddyl::ResidualModelState>(state_, actuation_->get_nu());
+  // costs->addCost(
+  //   "state_limits",
+  //   std::make_shared<crocoddyl::CostModelResidual>(state_, x_limit_activation, x_limit_residual),
+  //   params_.weights.state_limits);
+
+  // Control limit
+  Eigen::VectorXd u_max = model_ptr_->effortLimit.tail(actuation_->get_nu());
+  Eigen::VectorXd u_min = -u_max;
+  crocoddyl::ActivationBounds u_bounds(u_min, u_max);
+  auto u_limit_activation = std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(u_bounds);
+
+  auto u_limit_residual =
+    std::make_shared<crocoddyl::ResidualModelControl>(state_, actuation_->get_nu());
+  costs->addCost(
+    "control_limits",
+    std::make_shared<crocoddyl::CostModelResidual>(state_, u_limit_activation, u_limit_residual),
+    params_.weights.control_limits);
 
   // State and Control regularization cost
   auto x_residual =

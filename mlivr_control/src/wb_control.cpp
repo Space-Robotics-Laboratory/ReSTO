@@ -40,6 +40,8 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   params.weights.swing_goal = this->declare_parameter<double>("solver.swing_goal", 1e4);
   params.weights.state_reg = this->declare_parameter<double>("solver.state_reg", 1e-1);
   params.weights.control_reg = this->declare_parameter<double>("solver.control_reg", 1e-4);
+  params.weights.state_limits = this->declare_parameter<double>("solver.state_limits", 1000.0);
+  params.weights.control_limits = this->declare_parameter<double>("solver.control_limits", 1000.0);
 
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";

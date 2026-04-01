@@ -40,6 +40,9 @@ struct WeightParams
   double swing_goal = 1e4;
   double state_reg = 1e-1;
   double control_reg = 1e-4;
+
+  double state_limits = 1e3;
+  double control_limits = 1e3;
 };
 
 struct WbcSolverParams
