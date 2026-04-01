@@ -23,6 +23,19 @@ ament_auto_add_executable(gj_control_node
   src/gj_control_node.cpp
 )
 
+ament_auto_add_library(wb_control
+  src/wb_control.cpp
+)
+target_link_libraries(wb_control
+  trajectory_generator::trajectory_generator
+)
+rclcpp_components_register_nodes(wb_control
+  "mlivr_control::WBControl"
+)
+ament_auto_add_executable(wb_control_node
+  src/wb_control_node.cpp
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

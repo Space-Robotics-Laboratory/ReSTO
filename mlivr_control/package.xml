@@ -10,15 +10,24 @@
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
   <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
+  <build_depend>ament_index_cpp</build_depend>
+
+  <exec_depend>ament_index_cpp</exec_depend>
+
+  <depend>ament_cmake_auto</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
+  <depend>crocoddyl</depend>
   <depend>eigen</depend>
   <depend>geometry_msgs</depend>
-  <depend>mlivr_model</depend>
+  <depend>hpp-fcl</depend>
+  <depend>pinocchio</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+
   <depend>coordinate_transformer</depend>
   <depend>trajectory_generator</depend>
+  <depend>mlivr_model</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_copyright</test_depend>
