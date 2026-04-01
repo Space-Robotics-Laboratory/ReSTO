@@ -81,12 +81,19 @@ bool WbcSolver::computeTrajectory(
     current_target.translation() =
       (1.0 - s) * start_swing_pose.translation() + s * target_swing_pose.translation();
 
-    auto model = createActionModel(x0, fixed_frame, fixed_pose, swing_frame, current_target);
+    TaskPhase current_phase;
+    current_phase.active_contacts[fixed_frame] = fixed_pose;
+    current_phase.swing_targets[swing_frame] = current_target;
+
+    auto model = createActionModel(x0, current_phase);
     running_models.push_back(model);
   }
 
-  auto terminal_model =
-    createActionModel(x0, fixed_frame, fixed_pose, swing_frame, target_swing_pose);
+  TaskPhase terminal_phase;
+  terminal_phase.active_contacts[fixed_frame] = fixed_pose;
+  terminal_phase.swing_targets[swing_frame] = target_swing_pose;
+
+  auto terminal_model = createActionModel(x0, terminal_phase);
 
   auto problem = std::make_shared<crocoddyl::ShootingProblem>(x0, running_models, terminal_model);
   crocoddyl::SolverFDDP solver(problem);
@@ -104,43 +111,44 @@ bool WbcSolver::computeTrajectory(
 }
 
 std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
-  const Eigen::VectorXd & x0, const std::string & fixed_frame, const pinocchio::SE3 & fixed_pose,
-  const std::string & swing_frame, const pinocchio::SE3 & target_pose)
+  const Eigen::VectorXd & x0, const TaskPhase & phase)
 {
-  // === Contact Model ===
-
   auto contacts = std::make_shared<crocoddyl::ContactModelMultiple>(state_, actuation_->get_nu());
+  auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, actuation_->get_nu());
 
-  pinocchio::FrameIndex fixed_id = model_ptr_->getFrameId(fixed_frame);
+  // Dynamic addition of contact model
+  for (const auto & [frame_name, pose] : phase.active_contacts) {
+    pinocchio::FrameIndex frame_id = model_ptr_->getFrameId(frame_name);
+    auto contact_6d = std::make_shared<crocoddyl::ContactModel6D>(
+      state_, frame_id, pose, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, actuation_->get_nu());
 
-  auto contact_6d = std::make_shared<crocoddyl::ContactModel6D>(
-    state_, fixed_id, fixed_pose, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED,
-    actuation_->get_nu());
-
-  contacts->addContact(fixed_frame + "_weld_contact", contact_6d);
+    contacts->addContact(frame_name + "_weld", contact_6d);
+  }
 
   // === Costs ===
 
-  auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, actuation_->get_nu());
+  // Dynamic addition of target-tracking costs
+  for (const auto & [frame_name, target_pose] : phase.swing_targets) {
+    pinocchio::FrameIndex frame_id = model_ptr_->getFrameId(frame_name);
+    auto placement_residual = std::make_shared<crocoddyl::ResidualModelFramePlacement>(
+      state_, frame_id, target_pose, actuation_->get_nu());
 
-  pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(swing_frame);
-  auto placement_residual = std::make_shared<crocoddyl::ResidualModelFramePlacement>(
-    state_, swing_id, target_pose, actuation_->get_nu());
-  costs->addCost(
-    "swing_goal_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
-    params_.weights.swing_goal);
+    costs->addCost(
+      frame_name + "_swing_goal",
+      std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
+      params_.weights.swing_goal);
+  }
 
-  // State regularization
+  // State and Control regularization cost
   auto x_residual =
     std::make_shared<crocoddyl::ResidualModelState>(state_, x0, actuation_->get_nu());
   costs->addCost(
-    "state_reg_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
+    "state_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
     params_.weights.state_reg);
 
-  // Minimize torque input
   auto u_residual = std::make_shared<crocoddyl::ResidualModelControl>(state_, actuation_->get_nu());
   costs->addCost(
-    "control_reg_cost", std::make_shared<crocoddyl::CostModelResidual>(state_, u_residual),
+    "control_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, u_residual),
     params_.weights.control_reg);
 
   // Differential-Algebraic Model (DAM)

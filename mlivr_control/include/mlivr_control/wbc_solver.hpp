@@ -16,6 +16,7 @@
 #define MLIVR_CONTROL__WBC_SOLVER_HPP_
 
 #include <Eigen/Dense>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -47,6 +48,15 @@ struct WbcSolverParams
   WeightParams weights;
 };
 
+struct TaskPhase
+{
+  // 把持(Weld)するフレームとその姿勢
+  std::map<std::string, pinocchio::SE3> active_contacts;
+
+  // 目標追従させるフレームとその目標姿勢
+  std::map<std::string, pinocchio::SE3> swing_targets;
+};
+
 class WbcSolver
 {
 public:
@@ -63,8 +73,7 @@ public:
 
 private:
   std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
-    const Eigen::VectorXd & x0, const std::string & fixed_frame, const pinocchio::SE3 & fixed_pose,
-    const std::string & swing_frame, const pinocchio::SE3 & target_pose);
+    const Eigen::VectorXd & x0, const TaskPhase & phase);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::shared_ptr<pinocchio::Data> data_ptr_;
