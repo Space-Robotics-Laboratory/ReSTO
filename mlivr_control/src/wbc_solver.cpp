@@ -31,7 +31,7 @@
 #include <crocoddyl/multibody/impulses/multiple-impulses.hpp>
 #include <crocoddyl/multibody/residuals/centroidal-momentum.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
-// #include <crocoddyl/multibody/residuals/frame-velocity.hpp>
+#include <crocoddyl/multibody/residuals/frame-velocity.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -256,23 +256,23 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createImpulseModel(
   // インパルスモデルでは瞬間的な状態遷移のみを扱うため、制御入力(u)はゼロ(nu=0)
   auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, 0);
 
-  // // =================================================================
-  // // ★ 衝撃吸収（Impact Minimization）コストの追加
-  // // =================================================================
+  // =================================================================
+  // ★ 衝撃吸収（Impact Minimization）コストの追加
+  // =================================================================
 
-  // // 1. Soft Landing コスト: 衝突直前の手先速度(Linear/Angular)をゼロに近づける
-  // auto vel_residual = std::make_shared<crocoddyl::ResidualModelFrameVelocity>(
-  //   state_, fixed_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, 0);
-  // costs->addCost(
-  //   "impact_vel_min", std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
-  //   1e3);  // 衝撃をどれだけ嫌がるかの重み
+  // 1. Soft Landing コスト: 衝突直前の手先速度(Linear/Angular)をゼロに近づける
+  auto vel_residual = std::make_shared<crocoddyl::ResidualModelFrameVelocity>(
+    state_, fixed_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, 0);
+  costs->addCost(
+    "impact_vel_min", std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
+    1e3);  // 衝撃をどれだけ嫌がるかの重み
 
-  // // 2. Base Stabilization コスト: 衝突時の撃力がベースの運動量変動に伝わるのを防ぐ（姿勢で吸収させる）
-  // auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
-  //   state_, Eigen::VectorXd::Zero(6), 0);  // インパルスモデルなので nu = 0
-  // costs->addCost(
-  //   "impact_momentum_min",
-  //   std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual), 1e-2);
+  // 2. Base Stabilization コスト: 衝突時の撃力がベースの運動量変動に伝わるのを防ぐ（姿勢で吸収させる）
+  auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
+    state_, Eigen::VectorXd::Zero(6), 0);  // インパルスモデルなので nu = 0
+  costs->addCost(
+    "impact_momentum_min",
+    std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual), 1e-2);
 
   // =================================================================
 
