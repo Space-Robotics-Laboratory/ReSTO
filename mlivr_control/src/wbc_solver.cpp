@@ -24,10 +24,14 @@
 #include <crocoddyl/core/solvers/fddp.hpp>
 #include <crocoddyl/core/utils/callbacks.hpp>
 #include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
+#include <crocoddyl/multibody/actions/impulse-fwddyn.hpp>
 #include <crocoddyl/multibody/contacts/contact-6d.hpp>
 #include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
+#include <crocoddyl/multibody/impulses/impulse-6d.hpp>
+#include <crocoddyl/multibody/impulses/multiple-impulses.hpp>
 #include <crocoddyl/multibody/residuals/centroidal-momentum.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
+// #include <crocoddyl/multibody/residuals/frame-velocity.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -75,13 +79,14 @@ bool WbcSolver::computeTrajectory(
   pinocchio::SE3 target_swing_pose = start_swing_pose * local_offset;
 
   int T = params_.solver.horizon_steps;
-  int T_air = T / 2;          // 前半: 空中フェーズ
-  int T_contact = T - T_air;  // 後半: 把持(Weld)フェーズ
+  int T_air = T / 2;  // 前半: 空中フェーズ
+  int T_contact =
+    T - T_air - 1;  // 後半: 把持(Weld)フェーズ ★インパルスモデルを1つ挟むため、後半を1減らす
 
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
 
   // ==========================================================
-  // [Phase 1] 空中フェーズ (アプローチA: Weldなし、位置キープ)
+  // [Phase 1] 空中フェーズ (アプローチA: Weldなし、位置キープ)(T_air 回)
   // ==========================================================
   for (int i = 0; i < T_air; ++i) {
     double s = static_cast<double>(i) / T;  // 軌道全体の進行度
@@ -102,10 +107,16 @@ bool WbcSolver::computeTrajectory(
   }
 
   // ==========================================================
-  // [Phase 2] 把持フェーズ (アプローチB: Weldあり、反力最小化)
+  // ★ [Transition] 衝撃(Impulse)モデルの挿入 (1ステップのみ)
   // ==========================================================
-  for (int i = T_air; i < T; ++i) {
-    double s = static_cast<double>(i) / T;
+  auto impulse_model = createImpulseModel(x0, fixed_frame);
+  running_models.push_back(impulse_model);
+
+  // ==========================================================
+  // [Phase 2] 把持フェーズ (アプローチB: Weldあり、反力最小化)(T_contact 回)
+  // ==========================================================
+  for (int i = 0; i < T_contact; ++i) {  // ループ変数の扱いに注意
+    double s = static_cast<double>(T_air + 1 + i) / T;
     pinocchio::SE3 current_target = start_swing_pose;
     current_target.translation() =
       (1.0 - s) * start_swing_pose.translation() + s * target_swing_pose.translation();
@@ -221,7 +232,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 
   costs->addCost(
     "momentum_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual),
-    1e3);  // 重みで調整
+    1e-2);  // 重みで調整
 
   // Differential-Algebraic Model (DAM)
   auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
@@ -229,6 +240,53 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 
   // Integrated Atmospheric Model (IAM) (Computing the state one step ahead using Euler integration)
   return std::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, params_.solver.dt);
+}
+
+std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createImpulseModel(
+  const Eigen::VectorXd & x0, const std::string & fixed_frame)
+{
+  auto impulses = std::make_shared<crocoddyl::ImpulseModelMultiple>(state_);
+  pinocchio::FrameIndex fixed_id = model_ptr_->getFrameId(fixed_frame);
+
+  // 衝突の瞬間、対象フレームを完全に固定（LOCAL_WORLD_ALIGNED）するインパルス
+  auto impulse_6d = std::make_shared<crocoddyl::ImpulseModel6D>(
+    state_, fixed_id, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED);
+  impulses->addImpulse(fixed_frame + "_impulse", impulse_6d);
+
+  // インパルスモデルでは瞬間的な状態遷移のみを扱うため、制御入力(u)はゼロ(nu=0)
+  auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, 0);
+
+  // // =================================================================
+  // // ★ 衝撃吸収（Impact Minimization）コストの追加
+  // // =================================================================
+
+  // // 1. Soft Landing コスト: 衝突直前の手先速度(Linear/Angular)をゼロに近づける
+  // auto vel_residual = std::make_shared<crocoddyl::ResidualModelFrameVelocity>(
+  //   state_, fixed_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, 0);
+  // costs->addCost(
+  //   "impact_vel_min", std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
+  //   1e3);  // 衝撃をどれだけ嫌がるかの重み
+
+  // // 2. Base Stabilization コスト: 衝突時の撃力がベースの運動量変動に伝わるのを防ぐ（姿勢で吸収させる）
+  // auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
+  //   state_, Eigen::VectorXd::Zero(6), 0);  // インパルスモデルなので nu = 0
+  // costs->addCost(
+  //   "impact_momentum_min",
+  //   std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual), 1e-2);
+
+  // =================================================================
+
+  // 状態正則化（衝突の瞬間に姿勢が極端に崩れないようにする）
+  auto x_residual = std::make_shared<crocoddyl::ResidualModelState>(state_, x0, 0);
+  costs->addCost(
+    "state_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
+    params_.weights.state_reg);
+
+  // 反発係数 r_coeff = 0.0 (完全非弾性衝突 = 把持・Weld)
+  double r_coeff = 0.0;
+
+  return std::make_shared<crocoddyl::ActionModelImpulseFwdDynamics>(
+    state_, impulses, costs, r_coeff, 0.0, true);
 }
 
 }  // namespace mlivr_control
