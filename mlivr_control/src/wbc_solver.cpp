@@ -75,28 +75,57 @@ bool WbcSolver::computeTrajectory(
   pinocchio::SE3 target_swing_pose = start_swing_pose * local_offset;
 
   int T = params_.solver.horizon_steps;
+  int T_air = T / 2;          // 前半: 空中フェーズ
+  int T_contact = T - T_air;  // 後半: 把持(Weld)フェーズ
+
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
 
-  for (int i = 0; i < T; ++i) {
+  // ==========================================================
+  // [Phase 1] 空中フェーズ (アプローチA: Weldなし、位置キープ)
+  // ==========================================================
+  for (int i = 0; i < T_air; ++i) {
+    double s = static_cast<double>(i) / T;  // 軌道全体の進行度
+    pinocchio::SE3 current_target = start_swing_pose;
+    current_target.translation() =
+      (1.0 - s) * start_swing_pose.translation() + s * target_swing_pose.translation();
+
+    TaskPhase phase_air;
+    // active_contacts には何も入れない (空中に浮いている)
+
+    // limb_1 は「その場に留まる」というソフトコスト
+    phase_air.swing_targets[fixed_frame] = fixed_pose;
+    // limb_2 の移動目標
+    phase_air.swing_targets[swing_frame] = current_target;
+
+    auto model = createActionModel(x0, phase_air);
+    running_models.push_back(model);
+  }
+
+  // ==========================================================
+  // [Phase 2] 把持フェーズ (アプローチB: Weldあり、反力最小化)
+  // ==========================================================
+  for (int i = T_air; i < T; ++i) {
     double s = static_cast<double>(i) / T;
     pinocchio::SE3 current_target = start_swing_pose;
     current_target.translation() =
       (1.0 - s) * start_swing_pose.translation() + s * target_swing_pose.translation();
 
-    TaskPhase current_phase;
-    // current_phase.active_contacts[fixed_frame] = fixed_pose;
-    // current_phase.swing_targets[swing_frame] = current_target;
-    current_phase.swing_targets[fixed_frame] = fixed_pose;
-    current_phase.swing_targets[swing_frame] = current_target;
+    TaskPhase phase_contact;
+    // limb_1 を接触モデル(Weld拘束)に登録！
+    phase_contact.active_contacts[fixed_frame] = fixed_pose;
 
-    auto model = createActionModel(x0, current_phase);
+    // limb_2 の移動目標
+    phase_contact.swing_targets[swing_frame] = current_target;
+
+    auto model = createActionModel(x0, phase_contact);
     running_models.push_back(model);
   }
 
+  // ==========================================================
+  // [Terminal] 終端モデル (把持したままゴールに到達)
+  // ==========================================================
   TaskPhase terminal_phase;
-  // terminal_phase.active_contacts[fixed_frame] = fixed_pose;
-  // terminal_phase.swing_targets[swing_frame] = target_swing_pose;
-  terminal_phase.swing_targets[fixed_frame] = fixed_pose;
+  terminal_phase.active_contacts[fixed_frame] = fixed_pose;
   terminal_phase.swing_targets[swing_frame] = target_swing_pose;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
