@@ -187,18 +187,35 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 
   // Dynamic addition of limit constraints (barrier functions)
 
-  // // State limit
-  // Eigen::VectorXd x_lb = state_->get_lb();
-  // Eigen::VectorXd x_ub = state_->get_ub();
-  // crocoddyl::ActivationBounds x_bounds(x_lb, x_ub);
-  // auto x_limit_activation = std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(x_bounds);
+  // ==============================================================
+  // ★ 復活＆改良: 状態リミット (Tangent Space 40次元へのスライス適用)
+  // ==============================================================
+  // state_->get_ndx() は 40次元 (ベース姿勢誤差6 + 関節角度14 + ベース速度6 + 関節速度14)
+  Eigen::VectorXd lb =
+    Eigen::VectorXd::Constant(state_->get_ndx(), -std::numeric_limits<double>::infinity());
+  Eigen::VectorXd ub =
+    Eigen::VectorXd::Constant(state_->get_ndx(), std::numeric_limits<double>::infinity());
 
-  // auto x_limit_residual =
-  //   std::make_shared<crocoddyl::ResidualModelState>(state_, actuation_->get_nu());
-  // costs->addCost(
-  //   "state_limits",
-  //   std::make_shared<crocoddyl::CostModelResidual>(state_, x_limit_activation, x_limit_residual),
-  //   params_.weights.state_limits);
+  // 1. 関節角度の上下限 (インデックス6〜19に格納される)
+  lb.segment(6, 14) = model_ptr_->lowerPositionLimit.tail(14);
+  ub.segment(6, 14) = model_ptr_->upperPositionLimit.tail(14);
+
+  // 2. 関節速度の上下限 (インデックス26〜39に格納される)
+  lb.segment(26, 14) = -model_ptr_->velocityLimit.tail(14);
+  ub.segment(26, 14) = model_ptr_->velocityLimit.tail(14);
+
+  crocoddyl::ActivationBounds x_bounds(lb, ub);
+  auto x_limit_activation = std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(x_bounds);
+
+  // xrefをゼロ状態(関節角0)にすることで、誤差ベクトルの関節部分が「絶対角度」と一致する
+  auto x_limit_residual =
+    std::make_shared<crocoddyl::ResidualModelState>(state_, state_->zero(), actuation_->get_nu());
+
+  costs->addCost(
+    "state_limits",
+    std::make_shared<crocoddyl::CostModelResidual>(state_, x_limit_activation, x_limit_residual),
+    1e-2);  // 非常に強い重みで絶対に限界を超えさせない
+  // ==============================================================
 
   // Control limit
   Eigen::VectorXd u_max = model_ptr_->effortLimit.tail(actuation_->get_nu());

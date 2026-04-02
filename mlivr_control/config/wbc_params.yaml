@@ -6,7 +6,7 @@ wb_control:
       dt: 0.01
 
     weights:
-      swing_goal: 50000.0
+      swing_goal: 10000.0
       state_reg: 0.1
       control_reg: 0.0001
       state_limits: 1000.0
