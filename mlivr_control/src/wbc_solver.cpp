@@ -260,15 +260,15 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 }
 
 std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createImpulseModel(
-  const Eigen::VectorXd & x0, const std::string & fixed_frame)
+  const Eigen::VectorXd & x0, const std::string & impact_frame)
 {
   auto impulses = std::make_shared<crocoddyl::ImpulseModelMultiple>(state_);
-  pinocchio::FrameIndex fixed_id = model_ptr_->getFrameId(fixed_frame);
+  pinocchio::FrameIndex impact_id = model_ptr_->getFrameId(impact_frame);
 
   // 衝突の瞬間、対象フレームを完全に固定（LOCAL_WORLD_ALIGNED）するインパルス
   auto impulse_6d = std::make_shared<crocoddyl::ImpulseModel6D>(
-    state_, fixed_id, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED);
-  impulses->addImpulse(fixed_frame + "_impulse", impulse_6d);
+    state_, impact_id, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED);
+  impulses->addImpulse(impact_frame + "_impulse", impulse_6d);
 
   // インパルスモデルでは瞬間的な状態遷移のみを扱うため、制御入力(u)はゼロ(nu=0)
   auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, 0);
@@ -279,7 +279,8 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createImpulseModel(
 
   // 1. Soft Landing コスト: 衝突直前の手先速度(Linear/Angular)をゼロに近づける
   auto vel_residual = std::make_shared<crocoddyl::ResidualModelFrameVelocity>(
-    state_, fixed_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, 0);
+    state_, impact_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED,
+    0);
   costs->addCost(
     "impact_vel_min", std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
     1e3);  // 衝撃をどれだけ嫌がるかの重み

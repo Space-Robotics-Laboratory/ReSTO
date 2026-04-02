@@ -79,7 +79,7 @@ private:
     const Eigen::VectorXd & x0, const TaskPhase & phase);
 
   std::shared_ptr<crocoddyl::ActionModelAbstract> createImpulseModel(
-    const Eigen::VectorXd & x0, const std::string & fixed_frame);
+    const Eigen::VectorXd & x0, const std::string & impact_frame);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::shared_ptr<pinocchio::Data> data_ptr_;
