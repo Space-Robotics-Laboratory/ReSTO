@@ -31,6 +31,7 @@
 #include <crocoddyl/multibody/impulses/multiple-impulses.hpp>
 #include <crocoddyl/multibody/residuals/centroidal-momentum.hpp>
 #include <crocoddyl/multibody/residuals/frame-placement.hpp>
+#include <crocoddyl/multibody/residuals/frame-translation.hpp>
 #include <crocoddyl/multibody/residuals/frame-velocity.hpp>
 #include <crocoddyl/multibody/residuals/state.hpp>
 #include <pinocchio/algorithm/frames.hpp>
@@ -82,6 +83,18 @@ bool WbcSolver::computeTrajectory(
   local_offset.translation() = local_translation_offset;
   pinocchio::SE3 target_swing_pose = start_swing_pose * local_offset;
 
+  // ==========================================================
+  // ★ 追加: 局所解を突破するための「中間経由点 (Via-point)」
+  // ==========================================================
+  pinocchio::SE3 via_swing_pose = start_swing_pose;
+  // // 初期位置と目標位置のちょうど中間を計算
+  via_swing_pose.translation() =
+    (start_swing_pose.translation() + target_swing_pose.translation()) / 2.0;
+  // // // その中間点から、さらにZ方向に持ち上げて「弧の頂点」を作る
+  // via_swing_pose.translation()(2) += 0.5;
+  // local_offset.translation() << 0.0, -0.1, -0.1;
+  // pinocchio::SE3 via_swing_pose = start_swing_pose * local_offset;
+
   int T = params_.solver.horizon_steps;
 
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
@@ -96,10 +109,16 @@ bool WbcSolver::computeTrajectory(
     // limb_1 は常に初期位置をキープする (ソフト制約)
     phase.swing_targets[fixed_frame] = start_fixed_pose;
 
+    if (i == T / 2) {
+      // 軌道のちょうど半分の時間で、持ち上げた経由点を通るように誘導
+      phase.swing_targets[swing_frame] = via_swing_pose;
+    }
     // limb_2 は「道中は自由に動かして良い」とするため、最後のステップのみ目標を与える
     if (i == T - 1) {
       phase.swing_targets[swing_frame] = target_swing_pose;
     }
+
+    phase.collision_frames = {fixed_frame, swing_frame};
 
     auto model = createActionModel(x0, phase);
     running_models.push_back(model);
@@ -111,6 +130,7 @@ bool WbcSolver::computeTrajectory(
   TaskPhase terminal_phase;
   terminal_phase.swing_targets[fixed_frame] = start_fixed_pose;
   terminal_phase.swing_targets[swing_frame] = target_swing_pose;
+  terminal_phase.collision_frames = {fixed_frame, swing_frame};
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
@@ -121,7 +141,7 @@ bool WbcSolver::computeTrajectory(
   callbacks.push_back(std::make_shared<crocoddyl::CallbackVerbose>());
   solver.setCallbacks(callbacks);
 
-  solver.solve(solver.get_xs(), solver.get_us(), 100, false);
+  solver.solve(solver.get_xs(), solver.get_us(), 500, false);
 
   optimized_xs_ = solver.get_xs();
   std::cout << "[WbcSolver] Optimization completed! Trajectory length: " << optimized_xs_.size()
@@ -158,6 +178,33 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
       params_.weights.swing_goal);
   }
 
+  // ==============================================================
+  // ★ 環境との干渉回避コスト（床面バリア）
+  // ==============================================================
+  double min_z = -0.02;
+
+  Eigen::Vector3d lb_trans(-1000.0, -1000.0, min_z);
+  Eigen::Vector3d ub_trans(1000.0, 1000.0, 1000.0);
+
+  crocoddyl::ActivationBounds trans_bounds(lb_trans, ub_trans);
+  auto trans_barrier_activation =
+    std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(trans_bounds);
+
+  // ★ phase から受け取ったフレームのリストを回す
+  for (const auto & frame_name : phase.collision_frames) {
+    pinocchio::FrameIndex frame_id = model_ptr_->getFrameId(frame_name);
+
+    auto translation_residual = std::make_shared<crocoddyl::ResidualModelFrameTranslation>(
+      state_, frame_id, Eigen::Vector3d::Zero(), actuation_->get_nu());
+
+    costs->addCost(
+      frame_name + "_floor_collision",
+      std::make_shared<crocoddyl::CostModelResidual>(
+        state_, trans_barrier_activation, translation_residual),
+      1e3);  // 遊び(min_z=-0.02)があるので、1e4でも暴れないはずです
+  }
+  // ==============================================================
+
   // Dynamic addition of limit constraints (barrier functions)
 
   // ==============================================================
@@ -190,7 +237,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   costs->addCost(
     "state_limits",
     std::make_shared<crocoddyl::CostModelResidual>(state_, x_limit_activation, x_limit_residual),
-    1e-2);  // 非常に強い重みで絶対に限界を超えさせない
+    params_.weights.state_limits);  // 非常に強い重みで絶対に限界を超えさせない
   // ==============================================================
 
   // Control limit
@@ -222,10 +269,9 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   // それがゼロ(Force::Zero)から変動しないようにペナルティを与える
   auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
     state_, Eigen::VectorXd::Zero(6), actuation_->get_nu());
-
   costs->addCost(
     "momentum_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual),
-    1e-2);  // 重みで調整
+    params_.weights.momentum_reg);
 
   // Differential-Algebraic Model (DAM)
   auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(

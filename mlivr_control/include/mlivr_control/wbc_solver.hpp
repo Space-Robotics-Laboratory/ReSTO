@@ -43,6 +43,8 @@ struct WeightParams
 
   double state_limits = 1e3;
   double control_limits = 1e3;
+
+  double momentum_reg = 0.0;
 };
 
 struct WbcSolverParams
@@ -58,6 +60,9 @@ struct TaskPhase
 
   // 目標追従させるフレームとその目標姿勢
   std::map<std::string, pinocchio::SE3> swing_targets;
+
+  // 衝突判定を行いたいフレーム名のリスト
+  std::vector<std::string> collision_frames;
 };
 
 class WbcSolver

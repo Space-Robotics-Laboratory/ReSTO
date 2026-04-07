@@ -11,3 +11,4 @@ mlivr_wbc:
       control_reg: 0.0000
       state_limits: 0.0
       control_limits: 0.0
+      momentum_reg: 0.0

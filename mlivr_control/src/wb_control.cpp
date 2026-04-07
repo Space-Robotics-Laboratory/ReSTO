@@ -43,6 +43,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");
   params.weights.control_limits = this->declare_parameter<double>("weights.control_limits");
+  params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
 
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
