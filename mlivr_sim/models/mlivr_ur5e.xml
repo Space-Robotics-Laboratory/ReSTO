@@ -18,7 +18,7 @@
   <worldbody>
     <body name="base_link">
       <freejoint name="root_joint"/>
-      <inertial pos="0 0 0" mass="50" diaginertia="0.2 0.2 0.2"/>
+      <inertial pos="0 0 0" mass="20" diaginertia="0.133333 0.133333 0.133333"/>
       <geom size="0.1 0.1 0.1" type="box"/>
       <geom pos="0 0.1 0" quat="0.5 -0.5 0.5 0.5" type="mesh" rgba="0.7 0.7 0.7 1" mesh="base"/>
       <geom pos="0 -0.1 0" quat="-0.5 -0.5 -0.5 0.5" type="mesh" rgba="0.7 0.7 0.7 1" mesh="base"/>

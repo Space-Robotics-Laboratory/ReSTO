@@ -9,9 +9,9 @@
   </mujoco>
   <link name="base_link">
     <inertial>
-      <mass value="30.0"/>
+      <mass value="20.0"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
-      <inertia ixx="0.2" ixy="0.0" ixz="0.0" iyy="0.2" iyz="0.0" izz="0.2"/>
+      <inertia ixx="0.133333" ixy="0.0" ixz="0.0" iyy="0.133333" iyz="0.0" izz="0.133333"/>
     </inertial>
     <visual>
       <geometry>
