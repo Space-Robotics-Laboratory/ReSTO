@@ -23,7 +23,7 @@ namespace mlivr_control
 WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", options)
 {
   // Publisher
-  cmd_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/joint_cmds", 10);
+  cmd_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("joint_cmds", 10);
 
   // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -34,6 +34,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
     std::chrono::milliseconds(10), std::bind(&WBControl::publishCommandStep, this));
 
   // ROS 2 parameters
+  ee_frames_ = this->declare_parameter<std::vector<std::string>>("ee_frames");
   WbcSolverParams params;
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
@@ -50,7 +51,8 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
 
   wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
 
-  current_q_.resize(14, 0.0);
+  num_joints_ = model_ptr_->nv - 6;
+  current_q_.resize(num_joints_, 0.0);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
@@ -61,16 +63,14 @@ void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
     return;
   }
 
-  for (size_t i = 0; i < 14 && i < msg->position.size(); ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
     current_q_[i] = msg->position[i];
   }
 
   Eigen::Vector3d offset(0.0, -0.5, -0.0);  // 手先座標系の移動量
 
   // Call solver to perform computation
-  if (
-    wbc_solver_->computeTrajectory(
-      current_q_, "limb_1_link_gripper", "limb_2_link_gripper", offset)) {
+  if (wbc_solver_->computeTrajectory(current_q_, ee_frames_[0], ee_frames_[1], offset)) {
     is_initialized_ = true;
   }
 }
@@ -86,8 +86,8 @@ void WBControl::publishCommandStep()
   Eigen::VectorXd q_opt = optimized_xs[playback_idx_].head(model_ptr_->nq);
 
   std_msgs::msg::Float64MultiArray cmd_msg;
-  cmd_msg.data.resize(14);
-  for (int i = 0; i < 14; ++i) {
+  cmd_msg.data.resize(num_joints_);
+  for (int i = 0; i < num_joints_; ++i) {
     cmd_msg.data[i] = q_opt(7 + i);
   }
   cmd_pub_->publish(cmd_msg);

@@ -57,6 +57,9 @@ private:
 
   std::unique_ptr<WbcSolver> wbc_solver_;
 
+  int num_joints_;
+  std::vector<std::string> ee_frames_;
+
   std::vector<double> current_q_;
 
   bool is_initialized_ = false;

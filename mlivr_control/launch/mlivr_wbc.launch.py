@@ -13,21 +13,24 @@
 # limitations under the License.
 
 import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    pkg_path = get_package_share_directory('mlivr_control')
-    wbc_params = os.path.join(pkg_path, 'config', 'wbc_params.yaml')
+    desc_pkg_path = get_package_share_directory('mlivr_description')
+    mlivr_params = os.path.join(desc_pkg_path, 'config', 'mlivr_params.yaml')
+
+    ctrl_pkg_path = get_package_share_directory('mlivr_control')
+    wbc_params = os.path.join(ctrl_pkg_path, 'config', 'wbc_params.yaml')
 
     mlivr_wbc_node = Node(
         package='mlivr_control',
         executable='wb_control_node',
         name='mlivr_wbc',
         output='screen',
-        parameters=[wbc_params]
+        parameters=[mlivr_params, wbc_params]
     )
 
     return LaunchDescription([

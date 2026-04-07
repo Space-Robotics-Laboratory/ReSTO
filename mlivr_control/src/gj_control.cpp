@@ -29,15 +29,19 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
   timer_ = this->create_wall_timer(
     std::chrono::milliseconds(10), std::bind(&GJControl::controlLoop, this));
 
+  ee_frames_ = this->declare_parameter<std::vector<std::string>>("ee_frames");
+
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
   robot_core_ = std::make_unique<mlivr_model::RobotCore>(urdf_path);
   kinematics_ = std::make_unique<mlivr_model::Kinematics>(*robot_core_);
   dynamics_ = std::make_unique<mlivr_model::Dynamics>(*robot_core_);
 
-  current_q_.resize(kTotalNumJoints, 0.0);
-  current_v_.resize(kTotalNumJoints, 0.0);
-  target_q_.resize(kTotalNumJoints, 0.0);
+  num_joints_ = robot_core_->getModel().nv - 6;
+
+  current_q_.resize(num_joints_, 0.0);
+  current_v_.resize(num_joints_, 0.0);
+  target_q_.resize(num_joints_, 0.0);
   is_initialized_ = false;
 
   tf_transformer_ = std::make_unique<coordinate_transformer::CoordinateTransformer>(this);
@@ -48,7 +52,7 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
 void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  for (size_t i = 0; i < static_cast<size_t>(kTotalNumJoints) && i < msg->position.size(); ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
     current_q_[i] = msg->position[i];
 
     if (i < msg->velocity.size()) {
@@ -73,15 +77,16 @@ void GJControl::controlLoop()
   if (!is_initialized_) return;
 
   // --- 1. 一般化座標 q の構築 ---
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(21);
+  int nq = robot_core_->getModel().nq;
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q(6) = 1.0;
-  for (int i = 0; i < 14; ++i) {
+  for (int i = 0; i < num_joints_; ++i) {
     q(7 + i) = current_q_[i];
   }
 
   // --- 2. 順運動学(FK)と両腕の一般化ヤコビアンの計算 ---
-  std::string frame_L = "limb_1_link_gripper";  // 左腕の手先リンク名
-  std::string frame_R = "limb_2_link_gripper";  // 右腕の手先リンク名 (※要確認)
+  std::string frame_L = ee_frames_[0];  // 左腕の手先リンク名
+  std::string frame_R = ee_frames_[1];  // 右腕の手先リンク名 (※要確認)
 
   pinocchio::SE3 pose_L, pose_R;
   Eigen::MatrixXd J_gen_L, J_gen_R;
@@ -107,8 +112,8 @@ void GJControl::controlLoop()
   //     p.y(), p.z());
   // }
 
-  // --- 3. ヤコビアンの結合 (12行 x 14列) ---
-  Eigen::MatrixXd J_stacked(12, 14);
+  // --- 3. ヤコビアンの結合 (12行 x num_joints_列) ---
+  Eigen::MatrixXd J_stacked(12, num_joints_);
   J_stacked << J_gen_L, J_gen_R;
 
   // =======================================
@@ -119,26 +124,31 @@ void GJControl::controlLoop()
 
   if (is_trajectory_active_) {
     double t = this->now().seconds() - trajectory_start_time_;
-    if (t > 5.0) t = 5.0;  // 5秒で停止
+    // double duration = 10.0;  // ★ startTrajectory() と時間を合わせる！
 
-    // 1. スプラインから現在時刻の【目標速度】を取得 (すべて limb_1 座標系)
-    Eigen::VectorXd v_spline = Eigen::VectorXd::Zero(6);
-    v_spline.head<3>() = pos_spline_->getVelocity(t);
-    v_spline.tail<3>() = ori_spline_->getAngularVelocity(t);
+    if (t > duration_) {
+      // ★ 軌道終了後は確実に速度をゼロにする
+      v_target_local_R = Eigen::VectorXd::Zero(6);
+    } else {
+      // 1. スプラインから現在時刻の【目標速度】を取得 (すべて limb_1 座標系)
+      Eigen::VectorXd v_spline = Eigen::VectorXd::Zero(6);
+      v_spline.head<3>() = pos_spline_->getVelocity(t);
+      v_spline.tail<3>() = ori_spline_->getAngularVelocity(t);
 
-    // PinocchioのMotion型（空間速度）に変換
-    pinocchio::Motion v_ff_L1(v_spline);
+      // PinocchioのMotion型（空間速度）に変換
+      pinocchio::Motion v_ff_L1(v_spline);
 
-    // 2. 現在の手先 Pose (limb_1 から見た limb_2)
-    // ※pose_L, pose_R は上で計算済みの solveFK の結果
-    pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
+      // 2. 現在の手先 Pose (limb_1 から見た limb_2)
+      // ※pose_L, pose_R は上で計算済みの solveFK の結果
+      pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
 
-    // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に直接変換
-    // actInv() は回転行列だけでなく、2点間の並進オフセットによる遠心力・コリオリ効果(ω x r)も正しく処理します
-    pinocchio::Motion v_ff_local_R = L1_to_R.actInv(v_ff_L1);
+      // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に直接変換
+      // actInv() は回転行列だけでなく、2点間の並進オフセットによる遠心力・コリオリ効果(ω x r)も正しく処理します
+      pinocchio::Motion v_ff_local_R = L1_to_R.actInv(v_ff_L1);
 
-    // フィードバックを使わず、純粋なスプライン速度のみを指令値とする
-    v_target_local_R = v_ff_local_R.toVector();
+      // フィードバックを使わず、純粋なスプライン速度のみを指令値とする
+      v_target_local_R = v_ff_local_R.toVector();
+    }
   }
 
   // --- 結合 ---
@@ -193,7 +203,7 @@ void GJControl::controlLoop()
   Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
 
   double dt = 0.01;
-  for (int i = 0; i < 14; ++i) {
+  for (int i = 0; i < num_joints_; ++i) {
     double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
     target_q_[i] += safe_cmd * dt;
   }
@@ -225,36 +235,38 @@ bool GJControl::startTrajectory()
     tf_msg.transform.rotation.z);
 
   // --- 2. 現在の手先位置の取得 (FK使用) ---
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(21);
+  int nq = robot_core_->getModel().nq;
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q(6) = 1.0;
-  for (int i = 0; i < 14; ++i) q(7 + i) = current_q_[i];
+  for (int i = 0; i < num_joints_; ++i) q(7 + i) = current_q_[i];
 
-  pinocchio::SE3 pose_L = kinematics_->solveFK(q, "limb_1_link_gripper");
-  pinocchio::SE3 pose_R = kinematics_->solveFK(q, "limb_2_link_gripper");
+  pinocchio::SE3 pose_L = kinematics_->solveFK(q, ee_frames_[0]);
+  pinocchio::SE3 pose_R = kinematics_->solveFK(q, ee_frames_[1]);
 
   // 左手座標系から見た右手(limb_2)の現在のPose
   pinocchio::SE3 current_pose_R_in_L = pose_L.actInv(pose_R);
   Eigen::Vector3d start_pos = current_pose_R_in_L.translation();
   Eigen::Quaterniond start_quat(current_pose_R_in_L.rotation());
 
-  target_pos = start_pos + Eigen::Vector3d(0.0, -0.5, -0.2);
+  target_pos = start_pos + Eigen::Vector3d(0.0, -0.2, -0.0);
   target_quat = start_quat;
 
   // --- 3. 自作ライブラリによる軌道制約の作成 ---
-  double duration = 5.0;  // 5秒間で移動
+  // double duration = 10.0;
+  duration_ = 20.0;
 
   // 位置の制約 (開始0秒で速度0、終了5秒で速度0)
   trajectory_generator::VectorStateConstraint start_p_c{
     0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   trajectory_generator::VectorStateConstraint end_p_c{
-    duration, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+    duration_, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
 
   // 姿勢の制約
   trajectory_generator::AngularStateConstraint start_o_c{
     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   trajectory_generator::AngularStateConstraint end_o_c{
-    duration, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+    duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
 
   // --- 4. スプラインの生成 ---

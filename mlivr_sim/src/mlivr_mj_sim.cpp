@@ -14,6 +14,7 @@
 
 #include "mlivr_sim/mlivr_mj_sim.hpp"
 
+// #include <algorithm>
 #include <cstdlib>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -30,7 +31,6 @@ MujocoSim * MujocoSim::instance_ = nullptr;
 MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_mj_sim", options)
 {
   instance_ = this;
-  const std::string kTopicPrefix = "/" + std::string(this->get_name());
 
   // Publisher
   joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
@@ -40,8 +40,6 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
     "joint_cmds", 10, std::bind(&MujocoSim::jointCmdCallback, this, std::placeholders::_1));
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-
-  target_qpos_.resize(14, 0.0);  // 14-DOF (7x2)  // TODO Parameterize num dof
 
   // === Initialize MuJoCo ===
 
@@ -61,42 +59,51 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
   }
   d_ = mj_makeData(m_);
 
-  // Pose Extraction  // TODO: Activate only pose extraction mode set in yaml
-  // for (int i = 0; i < 50000; i++) {
-  //   mj_step(m_, d_);
+  bool extract_keyframe = this->declare_parameter<bool>("extract_keyframe", false);
 
-  //   // Overwrite the base pose at every step forcefully
-  //   d_->qpos[0] = 0.0;   // x
-  //   d_->qpos[1] = 0.25;  // y
-  //   d_->qpos[2] = 1.0;   // z
-  //   d_->qpos[3] = 1.0;   // qw
-  //   d_->qpos[4] = 0.0;   // qx
-  //   d_->qpos[5] = 0.0;   // qy
-  //   d_->qpos[6] = 0.0;   // qz
+  if (extract_keyframe) {
+    // Pose Extraction  // TODO: Activate only pose extraction mode set in yaml
+    d_->qpos[8] = -1.57;
+    d_->qpos[14] = -1.57;
+    for (int i = 0; i < 50000; i++) {
+      mj_step(m_, d_);
 
-  //   // Reduce the overall system speed by 90%
-  //   for (int j = 0; j < m_->nv; j++) {
-  //     d_->qvel[j] *= 0.1;
-  //   }
-  // }
-  // std::cout << "\n\n";
-  // std::cout << "<keyframe>\n  <key name=\"init_grasp\" qpos=\"";
-  // for (int i = 0; i < m_->nq; i++) {
-  //   std::cout << d_->qpos[i] << " ";
-  // }
-  // std::cout << "\"/>\n</keyframe>\n\n";
+      // Overwrite the base pose at every step forcefully
+      d_->qpos[0] = 0.0;  // x
+      d_->qpos[1] = 0.3;  // y
+      d_->qpos[2] = 1.0;  // z
+      d_->qpos[3] = 1.0;  // qw
+      d_->qpos[4] = 0.0;  // qx
+      d_->qpos[5] = 0.0;  // qy
+      d_->qpos[6] = 0.0;  // qz
 
-  // Load keyframe
-  int key_id = mj_name2id(m_, mjOBJ_KEY, "init_grasp");
-  if (key_id >= 0) {
-    mj_resetDataKeyframe(m_, d_, key_id);
-    mj_forward(m_, d_);
+      // Reduce the overall system speed by 90%
+      for (int j = 0; j < m_->nv; j++) {
+        d_->qvel[j] *= 0.1;
+      }
+    }
+    std::cout << "\n\n";
+    std::cout << "<keyframe>\n  <key name=\"init_grasp\" qpos=\"";
+    for (int i = 0; i < m_->nq; i++) {
+      std::cout << d_->qpos[i] << " ";
+    }
+    std::cout << "\"/>\n</keyframe>\n\n";
   } else {
-    RCLCPP_WARN(this->get_logger(), "Keyframe 'init_grasp' not found. Using default posture.");
+    // Load keyframe
+    int key_id = mj_name2id(m_, mjOBJ_KEY, "init_grasp");
+    if (key_id >= 0) {
+      mj_resetDataKeyframe(m_, d_, key_id);
+      mj_forward(m_, d_);
+    } else {
+      RCLCPP_WARN(this->get_logger(), "Keyframe 'init_grasp' not found. Using default posture.");
+    }
   }
 
+  int num_joints = m_->nv - 6;
+  target_qpos_.resize(num_joints, 0.0);
+
   // Set target joint pos as initial joint pos
-  for (int i = 0; i < 14; i++) {
+  for (int i = 0; i < num_joints; i++) {
     target_qpos_[i] = d_->qpos[7 + i];
   }
 
@@ -129,7 +136,7 @@ MujocoSim::~MujocoSim()
 void MujocoSim::jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(target_mutex_);
-  for (size_t i = 0; i < 14 && i < msg->data.size(); i++) {
+  for (size_t i = 0; i < target_qpos_.size() && i < msg->data.size(); i++) {
     target_qpos_[i] = msg->data[i];
   }
 }
@@ -147,11 +154,20 @@ void MujocoSim::computePDControl(const mjModel * m, mjData * d)
   double kp = 50.0;
   double kd = 10.0;
 
+  int num_joints = m->nv - 6;
+
   std::lock_guard<std::mutex> lock(target_mutex_);
-  for (int i = 0; i < 14; i++) {
+  for (int i = 0; i < num_joints; i++) {
     double error = target_qpos_[i] - d->qpos[7 + i];
     double error_dot = 0.0 - d->qvel[6 + i];
-    d->qfrc_applied[6 + i] = (kp * error) + (kd * error_dot);
+
+    double tau = (kp * error) + (kd * error_dot);
+
+    // // ★ 物理演算の爆発を防ぐためのトルク制限（クランプ）
+    // // -150.0 Nm 〜 150.0 Nm の範囲に強制的に収める
+    // tau = std::clamp(tau, -150.0, 150.0);
+
+    d->qfrc_applied[6 + i] = tau;
   }
 }
 
@@ -196,6 +212,8 @@ void MujocoSim::simLoop()
   const double kPubFrequency = 60.0;  // Hz
   const double kPubRate = 1.0 / kPubFrequency;
 
+  int num_joints = m_->nv - 6;
+
   while (is_running_ && !glfwWindowShouldClose(window_) && rclcpp::ok()) {
     mj_step(m_, d_);
 
@@ -203,7 +221,7 @@ void MujocoSim::simLoop()
     if ((current_time - last_pub_time).seconds() >= kPubRate) {
       joint_msg.header.stamp = current_time;
       joint_msg.position.clear();
-      for (int i = 0; i < 14; i++) {
+      for (int i = 0; i < num_joints; i++) {
         joint_msg.position.push_back(d_->qpos[7 + i]);
         joint_msg.velocity.push_back(d_->qvel[6 + i]);
       }

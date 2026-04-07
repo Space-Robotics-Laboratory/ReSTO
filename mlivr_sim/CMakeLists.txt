@@ -40,6 +40,7 @@ ament_auto_add_executable(mlivr_mj_sim_node
 
 install(
   DIRECTORY
+    config
     launch
     models
   DESTINATION

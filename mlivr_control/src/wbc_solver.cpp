@@ -51,14 +51,18 @@ WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverPar
 }
 
 bool WbcSolver::computeTrajectory(
-  const std::vector<double> & current_q_14, const std::string & fixed_frame,
+  const std::vector<double> & current_q, const std::string & fixed_frame,
   const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset)
 {
   std::cout << "[WbcSolver] === Starting Trajectory Optimization ===" << std::endl;
 
+  int num_joints = model_ptr_->nv - 6;
+
   Eigen::VectorXd q = Eigen::VectorXd::Zero(model_ptr_->nq);
   q(6) = 1.0;
-  for (int i = 0; i < 14; ++i) q(7 + i) = current_q_14[i];
+  for (int i = 0; i < num_joints; ++i) {
+    q(7 + i) = current_q[i];
+  }
 
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_ptr_->nv);
   Eigen::VectorXd x0(model_ptr_->nq + model_ptr_->nv);
@@ -160,18 +164,21 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   // ★ 復活＆改良: 状態リミット (Tangent Space 40次元へのスライス適用)
   // ==============================================================
   // state_->get_ndx() は 40次元 (ベース姿勢誤差6 + 関節角度14 + ベース速度6 + 関節速度14)
+  int num_joints = model_ptr_->nv - 6;
+
   Eigen::VectorXd lb =
     Eigen::VectorXd::Constant(state_->get_ndx(), -std::numeric_limits<double>::infinity());
   Eigen::VectorXd ub =
     Eigen::VectorXd::Constant(state_->get_ndx(), std::numeric_limits<double>::infinity());
 
   // 1. 関節角度の上下限 (インデックス6〜19に格納される)
-  lb.segment(6, 14) = model_ptr_->lowerPositionLimit.tail(14);
-  ub.segment(6, 14) = model_ptr_->upperPositionLimit.tail(14);
+  lb.segment(6, num_joints) = model_ptr_->lowerPositionLimit.tail(num_joints);
+  ub.segment(6, num_joints) = model_ptr_->upperPositionLimit.tail(num_joints);
 
   // 2. 関節速度の上下限 (インデックス26〜39に格納される)
-  lb.segment(26, 14) = -model_ptr_->velocityLimit.tail(14);
-  ub.segment(26, 14) = model_ptr_->velocityLimit.tail(14);
+  int vel_start_idx = 12 + num_joints;
+  lb.segment(vel_start_idx, num_joints) = -model_ptr_->velocityLimit.tail(num_joints);
+  ub.segment(vel_start_idx, num_joints) = model_ptr_->velocityLimit.tail(num_joints);
 
   crocoddyl::ActivationBounds x_bounds(lb, ub);
   auto x_limit_activation = std::make_shared<crocoddyl::ActivationModelQuadraticBarrier>(x_bounds);

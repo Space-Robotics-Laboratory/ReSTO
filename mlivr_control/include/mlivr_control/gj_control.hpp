@@ -67,12 +67,13 @@ private:
   bool is_initialized_;
   std::mutex state_mutex_;
 
-  const int kNumJoints = 7;
-  const int kTotalNumJoints = 14;
+  int num_joints_;
+  std::vector<std::string> ee_frames_;
 
   std::unique_ptr<coordinate_transformer::CoordinateTransformer> tf_transformer_;
   std::unique_ptr<trajectory_generator::VectorSpline> pos_spline_;
   std::unique_ptr<trajectory_generator::OrientationSpline> ori_spline_;
+  double duration_;
 
   double trajectory_start_time_ = 0.0;
   bool is_trajectory_active_ = false;

@@ -19,17 +19,17 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    pkg_path = get_package_share_directory('mlivr_sim')
-    sim_params = os.path.join(pkg_path, 'config', 'sim_params.yaml')
+    desc_pkg_path = get_package_share_directory('mlivr_description')
+    mlivr_params = os.path.join(desc_pkg_path, 'config', 'mlivr_params.yaml')
 
-    mlivr_mj_sim_node = Node(
-        package='mlivr_sim',
-        executable='mlivr_mj_sim_node',
-        name='mlivr_mj_sim',
+    mlivr_gjc_node = Node(
+        package='mlivr_control',
+        executable='gj_control_node',
+        name='mlivr_gjc',
         output='screen',
-        parameters=[sim_params]
+        parameters=[mlivr_params]
     )
 
     return LaunchDescription([
-        mlivr_mj_sim_node,
+        mlivr_gjc_node
     ])

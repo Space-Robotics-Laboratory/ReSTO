@@ -1,0 +1,3 @@
+mlivr_mj_sim:
+  ros__parameters:
+    extract_keyframe: false # true/false

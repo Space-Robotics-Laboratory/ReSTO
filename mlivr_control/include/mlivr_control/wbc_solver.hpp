@@ -67,7 +67,7 @@ public:
   ~WbcSolver() = default;
 
   bool computeTrajectory(
-    const std::vector<double> & current_q_14, const std::string & fixed_frame,
+    const std::vector<double> & current_q, const std::string & fixed_frame,
     const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
