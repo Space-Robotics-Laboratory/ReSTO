@@ -118,7 +118,8 @@ bool WbcSolver::computeTrajectory(
       phase.swing_targets[swing_frame] = target_swing_pose;
     }
 
-    phase.collision_frames = {fixed_frame, swing_frame};
+    // phase.collision_frames = {fixed_frame, swing_frame};
+    phase.collision_frames = {swing_frame};
 
     auto model = createActionModel(x0, phase);
     running_models.push_back(model);
@@ -130,7 +131,8 @@ bool WbcSolver::computeTrajectory(
   TaskPhase terminal_phase;
   terminal_phase.swing_targets[fixed_frame] = start_fixed_pose;
   terminal_phase.swing_targets[swing_frame] = target_swing_pose;
-  terminal_phase.collision_frames = {fixed_frame, swing_frame};
+  // terminal_phase.collision_frames = {fixed_frame, swing_frame};
+  terminal_phase.collision_frames = {swing_frame};
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
