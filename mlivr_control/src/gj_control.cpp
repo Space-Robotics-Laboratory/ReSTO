@@ -215,24 +215,24 @@ void GJControl::controlLoop()
 
 bool GJControl::startTrajectory()
 {
-  // --- 1. 目標把持点の取得 (TF使用) ---
-  std::string target_site = "seattrack_1_site_1";  // 右手が向かう目標
-  std::string base_frame = "limb_1_gripper_site";  // 左手(固定端)を基準座標とする
+  // // --- 1. 目標把持点の取得 (TF使用) ---
+  // std::string target_site = "seattrack_1_site_1";  // 右手が向かう目標
+  // std::string base_frame = "limb_1_gripper_site";  // 左手(固定端)を基準座標とする
 
-  // tf_transformer_を使って、左手基準の目標位置を取得
-  auto tf_msg_opt = tf_transformer_->getTransformMsg(target_site, base_frame);
-  if (!tf_msg_opt) {
-    RCLCPP_WARN_THROTTLE(
-      this->get_logger(), *this->get_clock(), 1000, "Waiting for TF: %s -> %s", target_site.c_str(),
-      base_frame.c_str());
-    return false;
-  }
-  auto tf_msg = tf_msg_opt.value();
-  Eigen::Vector3d target_pos(
-    tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z);
-  Eigen::Quaterniond target_quat(
-    tf_msg.transform.rotation.w, tf_msg.transform.rotation.x, tf_msg.transform.rotation.y,
-    tf_msg.transform.rotation.z);
+  // // tf_transformer_を使って、左手基準の目標位置を取得
+  // auto tf_msg_opt = tf_transformer_->getTransformMsg(target_site, base_frame);
+  // if (!tf_msg_opt) {
+  //   RCLCPP_WARN_THROTTLE(
+  //     this->get_logger(), *this->get_clock(), 1000, "Waiting for TF: %s -> %s", target_site.c_str(),
+  //     base_frame.c_str());
+  //   return false;
+  // }
+  // auto tf_msg = tf_msg_opt.value();
+  // Eigen::Vector3d target_pos(
+  //   tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z);
+  // Eigen::Quaterniond target_quat(
+  //   tf_msg.transform.rotation.w, tf_msg.transform.rotation.x, tf_msg.transform.rotation.y,
+  //   tf_msg.transform.rotation.z);
 
   // --- 2. 現在の手先位置の取得 (FK使用) ---
   int nq = robot_core_->getModel().nq;
@@ -250,8 +250,8 @@ bool GJControl::startTrajectory()
 
   auto displacement = Eigen::Vector3d(0.0, -0.2, -0.0);
 
-  target_pos = start_pos + displacement;
-  target_quat = start_quat;
+  Eigen::Vector3d target_pos = start_pos + displacement;
+  Eigen::Quaterniond target_quat = start_quat;
 
   Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, -0.05);
   Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
