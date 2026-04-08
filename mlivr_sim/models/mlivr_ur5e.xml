@@ -2,7 +2,7 @@
   <compiler angle="radian"/>
 
   <default>
-    <joint armature="1.0" frictionloss="1.0"/>
+    <joint armature="1.0" frictionloss="0.1" damping="0.1" limited="true" />
   </default>
 
   <visual>
@@ -30,27 +30,27 @@
       <geom pos="0 -0.1 0" quat="-0.5 -0.5 -0.5 0.5" type="mesh" rgba="0.7 0.7 0.7 1" mesh="base"/>
       <body name="limb_1_shoulder_link" pos="0 0.263 0" quat="0.5 -0.5 0.5 0.5">
         <inertial pos="0 0 0" mass="3.7" diaginertia="0.0102675 0.0102675 0.00666"/>
-        <joint name="limb_1_shoulder_pan_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-150 150" damping="0.5"/>
+        <joint name="limb_1_shoulder_pan_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-150 150" />
         <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="shoulder"/>
         <body name="limb_1_upper_arm_link" pos="0 0.138 0" quat="0.707107 0 0.707107 0">
           <inertial pos="0 0 0.2125" mass="8.393" diaginertia="0.133886 0.133886 0.0151074"/>
-          <joint name="limb_1_shoulder_lift_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-150 150" damping="0.5"/>
+          <joint name="limb_1_shoulder_lift_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-150 150" />
           <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="upperarm"/>
           <body name="limb_1_forearm_link" pos="0 -0.131 0.425">
             <inertial pos="0 0 0.196" mass="2.275" diaginertia="0.0311796 0.0311796 0.004095"/>
-            <joint name="limb_1_elbow_joint" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159" actuatorfrcrange="-150 150" damping="0.5"/>
+            <joint name="limb_1_elbow_joint" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159" actuatorfrcrange="-150 150" />
             <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="forearm"/>
             <body name="limb_1_wrist_1_link" pos="0 0 0.392" quat="0.707107 0 0.707107 0">
               <inertial pos="0 0.127 0" mass="1.219" diaginertia="0.0025599 0.0025599 0.0021942"/>
-              <joint name="limb_1_wrist_1_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+              <joint name="limb_1_wrist_1_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
               <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist1"/>
               <body name="limb_1_wrist_2_link" pos="0 0.127 0">
                 <inertial pos="0 0 0.1" mass="1.219" diaginertia="0.0025599 0.0025599 0.0021942"/>
-                <joint name="limb_1_wrist_2_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+                <joint name="limb_1_wrist_2_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
                 <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist2"/>
                 <body name="limb_1_wrist_3_link" pos="0 0 0.1">
                   <inertial pos="-5.29381e-05 0.0772212 0" quat="0.387237 0.591648 -0.387237 0.591648" mass="0.1889" diaginertia="0.000132755 9.95419e-05 9.89208e-05"/>
-                  <joint name="limb_1_wrist_3_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+                  <joint name="limb_1_wrist_3_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
                   <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist3"/>
                   <geom size="0.005 0.005 0.005" pos="0 0.09 0" quat="0.707107 0 0 0.707107" type="box"/>
                   <site name="limb_1_gripper_site" pos="0 0.1 0" quat="0.707107 -0.707107 0 0" size="0.01" rgba="0 1 0 1" group="1"/>
@@ -62,27 +62,27 @@
       </body>
       <body name="limb_2_shoulder_link" pos="0 -0.263 0" quat="-0.5 -0.5 -0.5 0.5">
         <inertial pos="0 0 0" mass="3.7" diaginertia="0.0102675 0.0102675 0.00666"/>
-        <joint name="limb_2_shoulder_pan_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-150 150" damping="0.5"/>
+        <joint name="limb_2_shoulder_pan_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-150 150" />
         <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="shoulder"/>
         <body name="limb_2_upper_arm_link" pos="0 0.138 0" quat="0.707107 0 0.707107 0">
           <inertial pos="0 0 0.2125" mass="8.393" diaginertia="0.133886 0.133886 0.0151074"/>
-          <joint name="limb_2_shoulder_lift_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-150 150" damping="0.5"/>
+          <joint name="limb_2_shoulder_lift_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-150 150" />
           <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="upperarm"/>
           <body name="limb_2_forearm_link" pos="0 -0.131 0.425">
             <inertial pos="0 0 0.196" mass="2.275" diaginertia="0.0311796 0.0311796 0.004095"/>
-            <joint name="limb_2_elbow_joint" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159" actuatorfrcrange="-150 150" damping="0.5"/>
+            <joint name="limb_2_elbow_joint" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159" actuatorfrcrange="-150 150" />
             <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="forearm"/>
             <body name="limb_2_wrist_1_link" pos="0 0 0.392" quat="0.707107 0 0.707107 0">
               <inertial pos="0 0.127 0" mass="1.219" diaginertia="0.0025599 0.0025599 0.0021942"/>
-              <joint name="limb_2_wrist_1_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+              <joint name="limb_2_wrist_1_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
               <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist1"/>
               <body name="limb_2_wrist_2_link" pos="0 0.127 0">
                 <inertial pos="0 0 0.1" mass="1.219" diaginertia="0.0025599 0.0025599 0.0021942"/>
-                <joint name="limb_2_wrist_2_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+                <joint name="limb_2_wrist_2_joint" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
                 <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist2"/>
                 <body name="limb_2_wrist_3_link" pos="0 0 0.1">
                   <inertial pos="-5.29381e-05 0.0772212 0" quat="0.387237 0.591648 -0.387237 0.591648" mass="0.1889" diaginertia="0.000132755 9.95419e-05 9.89208e-05"/>
-                  <joint name="limb_2_wrist_3_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" damping="0.5"/>
+                  <joint name="limb_2_wrist_3_joint" pos="0 0 0" axis="0 1 0" range="-6.28319 6.28319" actuatorfrcrange="-28 28" />
                   <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="wrist3"/>
                   <geom size="0.005 0.005 0.005" pos="0 0.09 0" quat="0.707107 0 0 0.707107" type="box"/>
                   <site name="limb_2_gripper_site" pos="0 0.1 0" quat="0.707107 -0.707107 0 0" size="0.01" rgba="0 1 0 1" group="1"/>
