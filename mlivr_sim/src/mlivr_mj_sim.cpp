@@ -192,7 +192,7 @@ void MujocoSim::computePDControl(const mjModel * m, mjData * d)
 {
   (void)m;
   double kp = 500.0;
-  double kd = 10.0;
+  double kd = 30.0;
 
   int num_joints = m->nv - 6;
 
