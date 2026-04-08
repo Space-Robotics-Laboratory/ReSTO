@@ -88,4 +88,13 @@
       </body>
     </body>
   </worldbody>
+
+  <sensor>
+    <force  site="limb_1_gripper_site" name="limb_1_ee_force"/>
+    <torque site="limb_1_gripper_site" name="limb_1_ee_torque"/>
+
+    <force  site="limb_2_gripper_site" name="limb_2_ee_force"/>
+    <torque site="limb_2_gripper_site" name="limb_2_ee_torque"/>
+  </sensor>
+
 </mujoco>

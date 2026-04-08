@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -44,6 +45,8 @@ public:
   virtual ~MujocoSim();
 
 private:
+  void publishFTSensorData(const rclcpp::Time & now);
+
   void jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 
   // MuJoCo Control Callback (Static wrapper)
@@ -57,6 +60,7 @@ private:
 
   // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
+  std::vector<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr> ee_ft_pubs_;
 
   // Subscriber
   rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_sub_;
@@ -92,6 +96,8 @@ private:
   static void scrollCallback(GLFWwindow * window, double xoffset, double yoffset);
   static void mouseButtonCallback(GLFWwindow * window, int button, int act, int mods);
   static void mouseMoveCallback(GLFWwindow * window, double xpos, double ypos);
+
+  int kNumLimbs_;
 };
 
 }  // namespace mlivr_mj_sim

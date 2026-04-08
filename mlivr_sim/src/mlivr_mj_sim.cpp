@@ -32,8 +32,15 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
 {
   instance_ = this;
 
+  kNumLimbs_ = 2;
+
   // Publisher
-  joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
+  joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
+
+  for (int limb_id = 0; limb_id < kNumLimbs_; ++limb_id) {
+    ee_ft_pubs_.push_back(this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/limb_" + std::to_string(limb_id + 1) + "/ee_ft_sensor", 10));
+  }
 
   // Subscriber
   cmd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -133,6 +140,39 @@ MujocoSim::~MujocoSim()
   RCLCPP_INFO(this->get_logger(), "/%s node is destructed.", this->get_name());
 }
 
+void MujocoSim::publishFTSensorData(const rclcpp::Time & now)
+{
+  if (!m_ || !d_) {
+    return;
+  }
+
+  for (int limb_id = 0; limb_id < kNumLimbs_; ++limb_id) {
+    std::string force_sensor_name = "limb_" + std::to_string(limb_id + 1) + "_ee_force";
+    std::string torque_sensor_name = "limb_" + std::to_string(limb_id + 1) + "_ee_torque";
+
+    int force_id = mj_name2id(m_, mjOBJ_SENSOR, force_sensor_name.c_str());
+    int torque_id = mj_name2id(m_, mjOBJ_SENSOR, torque_sensor_name.c_str());
+
+    if (force_id >= 0 && torque_id >= 0) {
+      geometry_msgs::msg::WrenchStamped msg;
+      msg.header.stamp = now;
+      msg.header.frame_id = "limb_" + std::to_string(limb_id + 1) + "_gripper_site";
+
+      int f_adr = m_->sensor_adr[force_id];
+      int t_adr = m_->sensor_adr[torque_id];
+
+      msg.wrench.force.x = d_->sensordata[f_adr + 0];
+      msg.wrench.force.y = d_->sensordata[f_adr + 1];
+      msg.wrench.force.z = d_->sensordata[f_adr + 2];
+      msg.wrench.torque.x = d_->sensordata[t_adr + 0];
+      msg.wrench.torque.y = d_->sensordata[t_adr + 1];
+      msg.wrench.torque.z = d_->sensordata[t_adr + 2];
+
+      ee_ft_pubs_[limb_id]->publish(msg);
+    }
+  }
+}
+
 void MujocoSim::jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(target_mutex_);
@@ -226,6 +266,8 @@ void MujocoSim::simLoop()
         joint_msg.velocity.push_back(d_->qvel[6 + i]);
       }
       joint_state_pub_->publish(joint_msg);
+      publishFTSensorData(current_time);
+
       last_pub_time = current_time;
     }
 
