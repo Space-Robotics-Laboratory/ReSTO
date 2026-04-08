@@ -104,14 +104,6 @@ void GJControl::controlLoop()
   pinocchio::SE3 current_pose_R_in_L = pose_L.actInv(pose_R);
   Eigen::Vector3d p = current_pose_R_in_L.translation();
 
-  // 1秒に1回くらいプリントして確認
-  // static int log_counter = 0;
-  // if (log_counter++ % 100 == 0) {
-  //   RCLCPP_INFO(
-  //     this->get_logger(), "Right Arm Position from Left Arm: [x: %.3f, y: %.3f, z: %.3f]", p.x(),
-  //     p.y(), p.z());
-  // }
-
   // --- 3. ヤコビアンの結合 (12行 x num_joints_列) ---
   Eigen::MatrixXd J_stacked(12, num_joints_);
   J_stacked << J_gen_L, J_gen_R;
@@ -248,7 +240,7 @@ bool GJControl::startTrajectory()
   Eigen::Vector3d start_pos = current_pose_R_in_L.translation();
   Eigen::Quaterniond start_quat(current_pose_R_in_L.rotation());
 
-  auto displacement = Eigen::Vector3d(0.0, -0.2, -0.0);
+  auto displacement = Eigen::Vector3d(-0.2, 0.0, -0.0);
 
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = start_quat;
