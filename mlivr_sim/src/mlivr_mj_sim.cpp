@@ -191,7 +191,7 @@ void MujocoSim::mjcbControlWrapper(const mjModel * m, mjData * d)
 void MujocoSim::computePDControl(const mjModel * m, mjData * d)
 {
   (void)m;
-  double kp = 50.0;
+  double kp = 500.0;
   double kd = 10.0;
 
   int num_joints = m->nv - 6;
