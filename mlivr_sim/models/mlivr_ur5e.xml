@@ -5,6 +5,12 @@
     <joint armature="1.0" frictionloss="1.0"/>
   </default>
 
+  <visual>
+    <scale contactwidth="0.05" contactheight="0.01" forcewidth="0.005"/>
+
+    <map force="0.01"/>
+  </visual>
+
   <asset>
     <mesh name="base" file="../../mlivr_description/meshes/ur5e/collision/base.stl"/>
     <mesh name="shoulder" file="../../mlivr_description/meshes/ur5e/collision/shoulder.stl"/>

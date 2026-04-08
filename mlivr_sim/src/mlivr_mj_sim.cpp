@@ -235,7 +235,10 @@ void MujocoSim::simLoop()
   mjv_defaultOption(&opt_);
   mjr_defaultContext(&con_);
 
-  // opt_.frame = mjFRAME_SITE;
+  // Visualization in sim window
+  opt_.frame = mjFRAME_SITE;
+  opt_.flags[mjVIS_CONTACTFORCE] = 1;
+  opt_.flags[mjVIS_CONTACTPOINT] = 1;
 
   mjv_makeScene(m_, &scn_, 2000);
   mjr_makeContext(m_, &con_, mjFONTSCALE_150);
