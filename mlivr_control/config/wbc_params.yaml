@@ -13,3 +13,4 @@ mlivr_wbc:
       state_limits: 0.0
       control_limits: 0.0
       momentum_reg: 0.0
+      ext_collision: 1e3

@@ -46,6 +46,8 @@ struct WeightParams
   double control_limits = 1e3;
 
   double momentum_reg = 0.0;
+
+  double ext_collision = 0.0;
 };
 
 struct WbcSolverParams

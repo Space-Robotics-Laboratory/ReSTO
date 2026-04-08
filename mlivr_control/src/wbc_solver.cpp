@@ -216,7 +216,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
       frame_name + "_floor_collision",
       std::make_shared<crocoddyl::CostModelResidual>(
         state_, trans_barrier_activation, translation_residual),
-      1e3);  // 遊び(min_z=-0.02)があるので、1e4でも暴れないはずです
+      params_.weights.ext_collision);
   }
   // ==============================================================
 
