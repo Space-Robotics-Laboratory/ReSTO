@@ -177,6 +177,20 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
       frame_name + "_swing_goal",
       std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
       params_.weights.swing_goal);
+
+    // ==============================================================
+    // ★ 追加：手先の空間速度をゼロに近づける（ダンピング）コスト
+    // ==============================================================
+    // 目標速度をゼロ (Motion::Zero) とし、動くこと自体にペナルティを与える
+    auto vel_residual = std::make_shared<crocoddyl::ResidualModelFrameVelocity>(
+      state_, frame_id, pinocchio::Motion::Zero(), pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED,
+      actuation_->get_nu());
+
+    costs->addCost(
+      frame_name + "_vel_damping",
+      std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
+      params_.weights.ee_vel_damping);
+    // ==============================================================
   }
 
   // ==============================================================

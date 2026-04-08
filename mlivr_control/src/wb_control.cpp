@@ -39,6 +39,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
   params.weights.swing_goal = this->declare_parameter<double>("weights.swing_goal");
+  params.weights.ee_vel_damping = this->declare_parameter<double>("weights.ee_vel_damping");
   params.weights.state_reg = this->declare_parameter<double>("weights.state_reg");
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");

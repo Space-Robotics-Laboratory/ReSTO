@@ -38,6 +38,7 @@ struct SolverParams
 struct WeightParams
 {
   double swing_goal = 1e4;
+  double ee_vel_damping = 1e4;
   double state_reg = 1e-1;
   double control_reg = 1e-4;
 
