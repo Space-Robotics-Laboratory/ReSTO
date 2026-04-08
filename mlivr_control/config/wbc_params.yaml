@@ -6,11 +6,11 @@ mlivr_wbc:
       dt: 0.01
 
     weights:
-      swing_goal: 1e4
-      ee_vel_damping: 1e4
-      state_reg: 1e2
-      control_reg: 0.0000
+      swing_goal: 2e2
+      ee_vel_damping: 1e1
+      state_reg: 1e0
+      control_reg: 1e1
       state_limits: 0.0
       control_limits: 0.0
       momentum_reg: 0.0
-      ext_collision: 1e3
+      ext_collision: 1e1
