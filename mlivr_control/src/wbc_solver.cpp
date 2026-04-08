@@ -75,25 +75,24 @@ bool WbcSolver::computeTrajectory(
   pinocchio::FrameIndex fixed_id = model_ptr_->getFrameId(fixed_frame);
   pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(swing_frame);
 
-  pinocchio::SE3 start_fixed_pose = data_ptr_->oMf[fixed_id];
-  pinocchio::SE3 start_swing_pose = data_ptr_->oMf[swing_id];
+  pinocchio::SE3 start_fixed_pose = data_ptr_->oMf[fixed_id];  // in world frame
+  pinocchio::SE3 start_swing_pose = data_ptr_->oMf[swing_id];  // in world frame
+
+  pinocchio::SE3 target_swing_pose = start_swing_pose;  // in world frame
+
+  target_swing_pose.translation() += local_translation_offset;
 
   // ローカル座標系での移動量を適用する処理
-  pinocchio::SE3 local_offset = pinocchio::SE3::Identity();
-  local_offset.translation() = local_translation_offset;
-  pinocchio::SE3 target_swing_pose = start_swing_pose * local_offset;
+  // pinocchio::SE3 local_offset = pinocchio::SE3::Identity();
+  // local_offset.translation() = local_translation_offset;
+  // target_swing_pose = start_swing_pose * local_offset;
 
   // ==========================================================
   // ★ 追加: 局所解を突破するための「中間経由点 (Via-point)」
   // ==========================================================
   pinocchio::SE3 via_swing_pose = start_swing_pose;
-  // // 初期位置と目標位置のちょうど中間を計算
   via_swing_pose.translation() =
     (start_swing_pose.translation() + target_swing_pose.translation()) / 2.0;
-  // // // その中間点から、さらにZ方向に持ち上げて「弧の頂点」を作る
-  // via_swing_pose.translation()(2) += 0.5;
-  // local_offset.translation() << 0.0, -0.1, -0.1;
-  // pinocchio::SE3 via_swing_pose = start_swing_pose * local_offset;
 
   int T = params_.solver.horizon_steps;
 

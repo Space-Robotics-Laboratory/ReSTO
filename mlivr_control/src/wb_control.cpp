@@ -68,7 +68,7 @@ void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
     current_q_[i] = msg->position[i];
   }
 
-  Eigen::Vector3d offset(-0.2, -0.0, -0.0);  // 手先座標系の移動量
+  Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
 
   // Call solver to perform computation
   if (wbc_solver_->computeTrajectory(current_q_, ee_frames_[0], ee_frames_[1], offset)) {
