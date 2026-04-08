@@ -248,8 +248,14 @@ bool GJControl::startTrajectory()
   Eigen::Vector3d start_pos = current_pose_R_in_L.translation();
   Eigen::Quaterniond start_quat(current_pose_R_in_L.rotation());
 
-  target_pos = start_pos + Eigen::Vector3d(0.0, -0.2, -0.0);
+  auto displacement = Eigen::Vector3d(0.0, -0.2, -0.0);
+
+  target_pos = start_pos + displacement;
   target_quat = start_quat;
+
+  Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, -0.05);
+  Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
+  Eigen::Quaterniond mid_quat = start_quat;
 
   // --- 3. 自作ライブラリによる軌道制約の作成 ---
   // double duration = 10.0;
@@ -262,12 +268,18 @@ bool GJControl::startTrajectory()
     duration_, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
 
+  trajectory_generator::VectorStateConstraint mid_p_c{duration_ / 2.0, mid_pos};
+  trajectory_generator::addConstraint(pos_constraints, mid_p_c);
+
   // 姿勢の制約
   trajectory_generator::AngularStateConstraint start_o_c{
     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   trajectory_generator::AngularStateConstraint end_o_c{
     duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
+
+  trajectory_generator::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
+  trajectory_generator::addConstraint(ori_constraints, mid_o_c);
 
   // --- 4. スプラインの生成 ---
   pos_spline_ = std::make_unique<trajectory_generator::VectorSpline>(pos_constraints, 3);
