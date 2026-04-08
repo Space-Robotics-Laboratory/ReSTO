@@ -77,7 +77,7 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
 
       // Overwrite the base pose at every step forcefully
       d_->qpos[0] = 0.0;  // x
-      d_->qpos[1] = 0.3;  // y
+      d_->qpos[1] = 0.1;  // y
       d_->qpos[2] = 1.0;  // z
       d_->qpos[3] = 1.0;  // qw
       d_->qpos[4] = 0.0;  // qx
@@ -234,6 +234,8 @@ void MujocoSim::simLoop()
   mjv_defaultCamera(&cam_);
   mjv_defaultOption(&opt_);
   mjr_defaultContext(&con_);
+
+  // opt_.frame = mjFRAME_SITE;
 
   mjv_makeScene(m_, &scn_, 2000);
   mjr_makeContext(m_, &con_, mjFONTSCALE_150);
