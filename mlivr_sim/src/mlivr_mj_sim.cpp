@@ -34,6 +34,10 @@ MujocoSim::MujocoSim(const rclcpp::NodeOptions & options) : rclcpp::Node("mlivr_
 
   kNumLimbs_ = 2;
 
+  // ROS 2 parameters
+  kp_ = this->declare_parameter<double>("gains.kp", 500.0);
+  kd_ = this->declare_parameter<double>("gains.kd", 30.0);
+
   // Publisher
   joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
 
@@ -191,9 +195,6 @@ void MujocoSim::mjcbControlWrapper(const mjModel * m, mjData * d)
 void MujocoSim::computePDControl(const mjModel * m, mjData * d)
 {
   (void)m;
-  double kp = 500.0;
-  double kd = 30.0;
-
   int num_joints = m->nv - 6;
 
   std::lock_guard<std::mutex> lock(target_mutex_);
@@ -201,11 +202,7 @@ void MujocoSim::computePDControl(const mjModel * m, mjData * d)
     double error = target_qpos_[i] - d->qpos[7 + i];
     double error_dot = 0.0 - d->qvel[6 + i];
 
-    double tau = (kp * error) + (kd * error_dot);
-
-    // // ★ 物理演算の爆発を防ぐためのトルク制限（クランプ）
-    // // -150.0 Nm 〜 150.0 Nm の範囲に強制的に収める
-    // tau = std::clamp(tau, -150.0, 150.0);
+    double tau = (kp_ * error) + (kd_ * error_dot);
 
     d->qfrc_applied[6 + i] = tau;
   }

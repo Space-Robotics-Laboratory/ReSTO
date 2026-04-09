@@ -35,9 +35,11 @@
     "qvel",
     "rclcpp",
     "schematypens",
+    "sensordata",
     "urdf",
     "Wextra",
     "Wpedantic",
+    "xmat",
     "xoffset"
   ],
   "cmake.ignoreCMakeListsMissing": true,

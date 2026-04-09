@@ -98,6 +98,9 @@ private:
   static void mouseMoveCallback(GLFWwindow * window, double xpos, double ypos);
 
   int kNumLimbs_;
+
+  double kp_;
+  double kd_;
 };
 
 }  // namespace mlivr_mj_sim
