@@ -84,12 +84,17 @@ void MujocoRosNode::publishJointStates(const rclcpp::Time & now)
 
   sensor_msgs::msg::JointState msg;
   msg.header.stamp = now;
-  for (int i = 0; i < num_joints; i++) {
-    msg.name.push_back("joint_" + std::to_string(i));  // TODO: Temporary
 
-    msg.position.push_back(d->qpos[7 + i]);
-    msg.velocity.push_back(d->qvel[6 + i]);
+  for (int i = 1; i < m->njnt; i++) {
+    const char * jnt_name = mj_id2name(m, mjOBJ_JOINT, i);
+
+    if (jnt_name) {
+      msg.name.push_back(jnt_name);
+      msg.position.push_back(d->qpos[m->jnt_qposadr[i]]);  // HACK: No need 7 if use jnt_qposadr
+      msg.velocity.push_back(d->qvel[m->jnt_dofadr[i]]);   // HACK: No need 6 if use jnt_dofadr
+    }
   }
+
   joint_state_pub_->publish(msg);
 }
 
@@ -130,26 +135,41 @@ void MujocoRosNode::jointCmdCallback(const sensor_msgs::msg::JointState::SharedP
   engine_->setControlCommand(msg->position, msg->velocity, msg->effort);
 }
 
-void MujocoRosNode::broadcastSiteTransforms(const rclcpp::Time & now)
+void MujocoRosNode::broadcastTransforms(const rclcpp::Time & now)
 {
   mjModel * m = engine_->getModel();
   mjData * d = engine_->getData();
 
   std::vector<geometry_msgs::msg::TransformStamped> transforms;
-  transforms.reserve(m->nsite);
+  transforms.reserve(1 + m->nsite);
+
+  geometry_msgs::msg::TransformStamped base_tf_msg;
+  base_tf_msg.header.stamp = now;
+  base_tf_msg.header.frame_id = "world";
+  base_tf_msg.child_frame_id = "base_link";
+
+  base_tf_msg.transform.translation.x = d->qpos[0];
+  base_tf_msg.transform.translation.y = d->qpos[1];
+  base_tf_msg.transform.translation.z = d->qpos[2];
+  base_tf_msg.transform.rotation.w = d->qpos[3];
+  base_tf_msg.transform.rotation.x = d->qpos[4];
+  base_tf_msg.transform.rotation.y = d->qpos[5];
+  base_tf_msg.transform.rotation.z = d->qpos[6];
+
+  transforms.push_back(base_tf_msg);
 
   for (int i = 0; i < m->nsite; ++i) {
     const char * site_name = mj_id2name(m, mjOBJ_SITE, i);
     if (!site_name) continue;
 
-    geometry_msgs::msg::TransformStamped tf_msg;
-    tf_msg.header.stamp = now;
-    tf_msg.header.frame_id = "world";
-    tf_msg.child_frame_id = std::string(site_name);
+    geometry_msgs::msg::TransformStamped site_tf_msg;
+    site_tf_msg.header.stamp = now;
+    site_tf_msg.header.frame_id = "world";
+    site_tf_msg.child_frame_id = std::string(site_name);
 
-    tf_msg.transform.translation.x = d->site_xpos[3 * i + 0];
-    tf_msg.transform.translation.y = d->site_xpos[3 * i + 1];
-    tf_msg.transform.translation.z = d->site_xpos[3 * i + 2];
+    site_tf_msg.transform.translation.x = d->site_xpos[3 * i + 0];
+    site_tf_msg.transform.translation.y = d->site_xpos[3 * i + 1];
+    site_tf_msg.transform.translation.z = d->site_xpos[3 * i + 2];
 
     int mat_offset = 9 * i;
     Eigen::Matrix3d R;
@@ -158,12 +178,12 @@ void MujocoRosNode::broadcastSiteTransforms(const rclcpp::Time & now)
       d->site_xmat[mat_offset + 6], d->site_xmat[mat_offset + 7], d->site_xmat[mat_offset + 8];
 
     Eigen::Quaterniond q(R);
-    tf_msg.transform.rotation.w = q.w();
-    tf_msg.transform.rotation.x = q.x();
-    tf_msg.transform.rotation.y = q.y();
-    tf_msg.transform.rotation.z = q.z();
+    site_tf_msg.transform.rotation.w = q.w();
+    site_tf_msg.transform.rotation.x = q.x();
+    site_tf_msg.transform.rotation.y = q.y();
+    site_tf_msg.transform.rotation.z = q.z();
 
-    transforms.push_back(tf_msg);
+    transforms.push_back(site_tf_msg);
   }
 
   if (!transforms.empty()) {
@@ -198,7 +218,7 @@ void MujocoRosNode::simLoop()
       last_pub_time = current_time;
     }
 
-    broadcastSiteTransforms(current_time);
+    broadcastTransforms(current_time);
 
     if (renderer_) {
       renderer_->render();

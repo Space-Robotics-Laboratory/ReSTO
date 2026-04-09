@@ -15,13 +15,20 @@
 #ifndef MLIVR_CONTROL__WB_CONTROL_HPP_
 #define MLIVR_CONTROL__WB_CONTROL_HPP_
 
+#include <tf2_ros/transform_broadcaster.h>
+
 #include <Eigen/Dense>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/empty.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.hpp"
@@ -43,13 +50,26 @@ public:
 private:
   void publishCommandStep();
 
+  void publishPlannedRobotState(const std::vector<Eigen::VectorXd> & optimized_xs);
+
+  void publishTrajectoryMarker();
+
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
+
+  void triggerCallback(const std_msgs::msg::Empty::SharedPtr msg);
 
   bool computeTrajectory();
 
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
+  // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ee_path_marker_pub_;
+  // Subscriber
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
+  // Timer
   rclcpp::TimerBase::SharedPtr timer_;
+
+  std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;
   std::shared_ptr<pinocchio::Model> model_ptr_;
@@ -63,6 +83,8 @@ private:
 
   bool is_initialized_ = false;
   size_t playback_idx_ = 0;
+
+  bool is_triggered_ = false;
 };
 
 }  // namespace mlivr_control

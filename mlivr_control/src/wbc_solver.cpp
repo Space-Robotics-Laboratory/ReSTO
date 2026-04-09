@@ -60,7 +60,14 @@ bool WbcSolver::computeTrajectory(
   int num_joints = model_ptr_->nv - 6;
 
   Eigen::VectorXd q = Eigen::VectorXd::Zero(model_ptr_->nq);
-  q(6) = 1.0;
+  // TODO: Change hard cord
+  q(0) = 0.0;  // x
+  q(1) = 0.1;  // y
+  q(2) = 1.0;  // z
+  q(3) = 0.0;  // qx
+  q(4) = 0.0;  // qy
+  q(5) = 0.0;  // qz
+  q(6) = 1.0;  // qw
   for (int i = 0; i < num_joints; ++i) {
     q(7 + i) = current_q[i];
   }

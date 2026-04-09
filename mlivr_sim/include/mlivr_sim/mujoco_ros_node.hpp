@@ -41,7 +41,7 @@ public:
 private:
   void publishJointStates(const rclcpp::Time & now);
   void publishFTSensorData(const rclcpp::Time & now);
-  void broadcastSiteTransforms(const rclcpp::Time & now);
+  void broadcastTransforms(const rclcpp::Time & now);
 
   void jointCmdCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 

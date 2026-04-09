@@ -24,14 +24,20 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
 {
   // Publisher
   cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_cmds", 10);
+  ee_path_marker_pub_ =
+    this->create_publisher<visualization_msgs::msg::Marker>("planned_trajectory", 10);
 
   // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_states", 10, std::bind(&WBControl::jointStateCallback, this, std::placeholders::_1));
+  trigger_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+    "/start_wbc", 10, std::bind(&WBControl::triggerCallback, this, std::placeholders::_1));
 
   // Timer
   timer_ = this->create_wall_timer(
     std::chrono::milliseconds(10), std::bind(&WBControl::publishCommandStep, this));
+
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   // ROS 2 parameters
   ee_frames_ = this->declare_parameter<std::vector<std::string>>("ee_frames");
@@ -58,24 +64,6 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   current_q_.resize(num_joints_, 0.0);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
-}
-
-void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
-{
-  if (is_initialized_) {
-    return;
-  }
-
-  for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
-    current_q_[i] = msg->position[i];
-  }
-
-  Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
-
-  // Call solver to perform computation
-  if (wbc_solver_->computeTrajectory(current_q_, ee_frames_[0], ee_frames_[1], offset)) {
-    is_initialized_ = true;
-  }
 }
 
 void WBControl::publishCommandStep()
@@ -110,7 +98,142 @@ void WBControl::publishCommandStep()
 
   cmd_pub_->publish(cmd_msg);
 
+  publishPlannedRobotState(optimized_xs);
+
   playback_idx_++;
+}
+
+void WBControl::publishPlannedRobotState(const std::vector<Eigen::VectorXd> & optimized_xs)
+{
+  pinocchio::Data data(*model_ptr_);
+
+  Eigen::VectorXd q_all = optimized_xs[playback_idx_].head(model_ptr_->nq);
+
+  pinocchio::forwardKinematics(*model_ptr_, data, q_all);
+  pinocchio::updateFramePlacements(*model_ptr_, data);
+
+  std::vector<geometry_msgs::msg::TransformStamped> transforms;
+  transforms.reserve(model_ptr_->frames.size());
+
+  // Broadcast the coordinates of all frames (links) in world frame
+  for (size_t i = 0; i < model_ptr_->frames.size(); ++i) {
+    const auto & frame = model_ptr_->frames[i];
+
+    if (frame.type != pinocchio::BODY && frame.type != pinocchio::JOINT) continue;
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    tf_msg.header.stamp = this->now();
+    tf_msg.header.frame_id = "world";
+    tf_msg.child_frame_id = "planned/" + frame.name;  // HACK
+
+    const auto & oMf = data.oMf[i];
+    Eigen::Vector3d trans = oMf.translation();
+    Eigen::Quaterniond quat(oMf.rotation());
+
+    tf_msg.transform.translation.x = trans.x();
+    tf_msg.transform.translation.y = trans.y();
+    tf_msg.transform.translation.z = trans.z();
+    tf_msg.transform.rotation.x = quat.x();
+    tf_msg.transform.rotation.y = quat.y();
+    tf_msg.transform.rotation.z = quat.z();
+    tf_msg.transform.rotation.w = quat.w();
+
+    transforms.push_back(tf_msg);
+  }
+
+  if (!transforms.empty()) {
+    tf_broadcaster_->sendTransform(transforms);
+  }
+}
+
+void WBControl::publishTrajectoryMarker()
+{
+  const auto & xs = wbc_solver_->getOptimizedXs();
+  if (xs.empty()) return;
+
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = "world";
+  marker.header.stamp = this->now();
+  marker.ns = "wbc_planned_path";
+  marker.id = 0;
+  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.005;  // Line width [mm]
+
+  marker.color.r = 0.0f;
+  marker.color.g = 1.0f;
+  marker.color.b = 1.0f;
+  marker.color.a = 1.0f;
+
+  pinocchio::Data data(*model_ptr_);
+  std::string swing_frame = ee_frames_[1];
+  pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(swing_frame);
+
+  for (const auto & x : xs) {
+    Eigen::VectorXd q = x.head(model_ptr_->nq);
+
+    pinocchio::forwardKinematics(*model_ptr_, data, q);
+    pinocchio::updateFramePlacements(*model_ptr_, data);
+
+    Eigen::Vector3d pos = data.oMf[swing_id].translation();
+
+    geometry_msgs::msg::Point p;
+    p.x = pos.x();
+    p.y = pos.y();
+    p.z = pos.z();
+    marker.points.push_back(p);
+  }
+
+  ee_path_marker_pub_->publish(marker);
+}
+
+void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  if (is_initialized_) {
+    return;
+  }
+
+  for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
+    current_q_[i] = msg->position[i];
+  }
+
+  if (!is_triggered_) {
+    std::vector<Eigen::VectorXd> dummy_xs;
+    Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
+
+    // Initial base pose (match with MuJoCo) // TODO: Change hard cord
+    q_all(0) = 0.0;
+    q_all(1) = 0.1;
+    q_all(2) = 1.0;
+    q_all(6) = 1.0;
+    for (int i = 0; i < num_joints_; ++i) q_all(7 + i) = current_q_[i];
+
+    dummy_xs.push_back(q_all);
+
+    size_t temp_idx = playback_idx_;
+    playback_idx_ = 0;
+    publishPlannedRobotState(dummy_xs);
+    playback_idx_ = temp_idx;
+
+    return;
+  }
+
+  Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
+
+  if (wbc_solver_->computeTrajectory(current_q_, ee_frames_[0], ee_frames_[1], offset)) {
+    is_initialized_ = true;
+    publishTrajectoryMarker();
+  }
+}
+
+void WBControl::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
+{
+  (void)msg;
+  if (!is_triggered_ && !is_initialized_) {
+    RCLCPP_INFO(this->get_logger(), "Optimization Triggered! Computing WBC trajectory...");
+    is_triggered_ = true;
+  }
 }
 
 }  // namespace mlivr_control

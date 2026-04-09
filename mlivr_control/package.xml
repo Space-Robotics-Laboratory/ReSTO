@@ -24,6 +24,7 @@
   <depend>pinocchio</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>visualization_msgs</depend>
 
   <depend>coordinate_transformer</depend>
   <depend>trajectory_generator</depend>
