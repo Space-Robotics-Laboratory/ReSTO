@@ -35,12 +35,14 @@ public:
 
   void setPDGains(double kp, double kd);
 
+  static void mjcbControlWrapper(const mjModel * m, mjData * d);
+
   // Getter
   mjModel * getModel() const { return m_; }
   mjData * getData() const { return d_; }
 
 private:
-  void computePDControl();
+  void computePDControl(const mjModel * m, mjData * d);
 
   mjModel * m_ = nullptr;
   mjData * d_ = nullptr;
@@ -52,6 +54,8 @@ private:
   double kd_ = 30.0;
 
   std::mutex target_mutex_;
+
+  static MujocoEngine * instance_;
 };
 
 }  // namespace mlivr_sim

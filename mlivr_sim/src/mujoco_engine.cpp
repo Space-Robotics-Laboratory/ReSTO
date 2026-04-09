@@ -21,6 +21,8 @@
 namespace mlivr_sim
 {
 
+MujocoEngine * MujocoEngine::instance_ = nullptr;
+
 MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
 {
   char error_msg[1000] = "";
@@ -71,11 +73,17 @@ MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
     target_qpos_[i] = d_->qpos[7 + i];
   }
 
+  instance_ = this;
+  mjcb_control = MujocoEngine::mjcbControlWrapper;
+
   std::cout << "[MujocoEngine] Successfully initialized." << std::endl;
 }
 
 MujocoEngine::~MujocoEngine()
 {
+  mjcb_control = nullptr;
+  instance_ = nullptr;
+
   if (d_) mj_deleteData(d_);
   if (m_) mj_deleteModel(m_);
 }
@@ -96,21 +104,27 @@ void MujocoEngine::setPDGains(double kp, double kd)
 
 void MujocoEngine::step()
 {
-  computePDControl();
-
   mj_step(m_, d_);
 }
 
-void MujocoEngine::computePDControl()
+void MujocoEngine::computePDControl(const mjModel * m, mjData * d)
 {
+  (void)m;
   std::lock_guard<std::mutex> lock(target_mutex_);
   for (int i = 0; i < num_joints_; i++) {
-    double error = target_qpos_[i] - d_->qpos[7 + i];
-    double error_dot = 0.0 - d_->qvel[6 + i];
+    double error = target_qpos_[i] - d->qpos[7 + i];
+    double error_dot = 0.0 - d->qvel[6 + i];
 
     double tau = (kp_ * error) + (kd_ * error_dot);
 
-    d_->qfrc_applied[6 + i] = tau;
+    d->qfrc_applied[6 + i] = tau;
+  }
+}
+
+void MujocoEngine::mjcbControlWrapper(const mjModel * m, mjData * d)
+{
+  if (instance_) {
+    instance_->computePDControl(m, d);
   }
 }
 
