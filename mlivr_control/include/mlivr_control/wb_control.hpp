@@ -22,7 +22,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.hpp"

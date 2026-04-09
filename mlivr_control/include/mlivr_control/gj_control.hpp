@@ -27,7 +27,6 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.hpp"
@@ -47,13 +46,15 @@ public:
   virtual ~GJControl() = default;
 
 private:
+  void publishCommandStep(const std::vector<double> & q);
+
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   void controlLoop();
 
   bool startTrajectory();
 
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 

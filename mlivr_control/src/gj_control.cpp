@@ -21,7 +21,7 @@ namespace mlivr_control
 
 GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", options)
 {
-  cmd_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/joint_cmds", 10);
+  cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_cmds", 10);
 
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_states", 10, std::bind(&GJControl::jointStateCallback, this, std::placeholders::_1));
@@ -47,6 +47,21 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
   tf_transformer_ = std::make_unique<coordinate_transformer::CoordinateTransformer>(this);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
+}
+
+void GJControl::publishCommandStep(const std::vector<double> & q)
+{
+  sensor_msgs::msg::JointState cmd_msg;
+  cmd_msg.header.stamp = this->now();
+
+  for (int i = 0; i < num_joints_; ++i) {
+    cmd_msg.name.push_back("joint_" + std::to_string(i + 1));  // TODO: Temporary
+    cmd_msg.position.push_back(q[i]);
+    cmd_msg.velocity.push_back(0.0);
+    cmd_msg.effort.push_back(0.0);
+  }
+
+  cmd_pub_->publish(cmd_msg);
 }
 
 void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
@@ -200,9 +215,7 @@ void GJControl::controlLoop()
     target_q_[i] += safe_cmd * dt;
   }
 
-  std_msgs::msg::Float64MultiArray cmd_msg;
-  cmd_msg.data = target_q_;
-  cmd_pub_->publish(cmd_msg);
+  publishCommandStep(target_q_);
 }
 
 bool GJControl::startTrajectory()

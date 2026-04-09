@@ -25,7 +25,6 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "mlivr_sim/mujoco_engine.hpp"
 #include "mlivr_sim/mujoco_renderer.hpp"
