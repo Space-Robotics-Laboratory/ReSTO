@@ -285,11 +285,248 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        base_link:
+          Value: false
+        handrail_1_site_1:
+          Value: false
+        handrail_1_site_2:
+          Value: false
+        handrail_1_site_3:
+          Value: false
+        handrail_1_site_4:
+          Value: false
+        handrail_1_site_5:
+          Value: false
+        handrail_2_site_1:
+          Value: false
+        limb_1_base_link:
+          Value: false
+        limb_1_ee_link:
+          Value: true
+        limb_1_forearm_link:
+          Value: false
+        limb_1_gripper_site:
+          Value: false
+        limb_1_shoulder_link:
+          Value: false
+        limb_1_tool0:
+          Value: false
+        limb_1_upper_arm_link:
+          Value: false
+        limb_1_wrist_1_link:
+          Value: false
+        limb_1_wrist_2_link:
+          Value: false
+        limb_1_wrist_3_link:
+          Value: false
+        limb_2_base_link:
+          Value: false
+        limb_2_ee_link:
+          Value: true
+        limb_2_forearm_link:
+          Value: false
+        limb_2_gripper_site:
+          Value: false
+        limb_2_shoulder_link:
+          Value: false
+        limb_2_tool0:
+          Value: false
+        limb_2_upper_arm_link:
+          Value: false
+        limb_2_wrist_1_link:
+          Value: false
+        limb_2_wrist_2_link:
+          Value: false
+        limb_2_wrist_3_link:
+          Value: false
+        planned/base_link:
+          Value: false
+        planned/limb_1_base_link:
+          Value: false
+        planned/limb_1_ee_link:
+          Value: false
+        planned/limb_1_elbow_joint:
+          Value: false
+        planned/limb_1_forearm_link:
+          Value: false
+        planned/limb_1_shoulder_lift_joint:
+          Value: false
+        planned/limb_1_shoulder_link:
+          Value: false
+        planned/limb_1_shoulder_pan_joint:
+          Value: false
+        planned/limb_1_tool0:
+          Value: false
+        planned/limb_1_upper_arm_link:
+          Value: false
+        planned/limb_1_wrist_1_joint:
+          Value: false
+        planned/limb_1_wrist_1_link:
+          Value: false
+        planned/limb_1_wrist_2_joint:
+          Value: false
+        planned/limb_1_wrist_2_link:
+          Value: false
+        planned/limb_1_wrist_3_joint:
+          Value: false
+        planned/limb_1_wrist_3_link:
+          Value: false
+        planned/limb_2_base_link:
+          Value: false
+        planned/limb_2_ee_link:
+          Value: false
+        planned/limb_2_elbow_joint:
+          Value: false
+        planned/limb_2_forearm_link:
+          Value: false
+        planned/limb_2_shoulder_lift_joint:
+          Value: false
+        planned/limb_2_shoulder_link:
+          Value: false
+        planned/limb_2_shoulder_pan_joint:
+          Value: false
+        planned/limb_2_tool0:
+          Value: false
+        planned/limb_2_upper_arm_link:
+          Value: false
+        planned/limb_2_wrist_1_joint:
+          Value: false
+        planned/limb_2_wrist_1_link:
+          Value: false
+        planned/limb_2_wrist_2_joint:
+          Value: false
+        planned/limb_2_wrist_2_link:
+          Value: false
+        planned/limb_2_wrist_3_joint:
+          Value: false
+        planned/limb_2_wrist_3_link:
+          Value: false
+        planned/root_joint:
+          Value: false
+        world:
+          Value: false
+      Marker Scale: 0.5
+      Name: TF
+      Show Arrows: false
+      Show Axes: true
+      Show Names: false
+      Tree:
+        world:
+          base_link:
+            limb_1_base_link:
+              limb_1_shoulder_link:
+                limb_1_upper_arm_link:
+                  limb_1_forearm_link:
+                    limb_1_wrist_1_link:
+                      limb_1_wrist_2_link:
+                        limb_1_wrist_3_link:
+                          limb_1_ee_link:
+                            {}
+                          limb_1_tool0:
+                            {}
+            limb_2_base_link:
+              limb_2_shoulder_link:
+                limb_2_upper_arm_link:
+                  limb_2_forearm_link:
+                    limb_2_wrist_1_link:
+                      limb_2_wrist_2_link:
+                        limb_2_wrist_3_link:
+                          limb_2_ee_link:
+                            {}
+                          limb_2_tool0:
+                            {}
+          handrail_1_site_1:
+            {}
+          handrail_1_site_2:
+            {}
+          handrail_1_site_3:
+            {}
+          handrail_1_site_4:
+            {}
+          handrail_1_site_5:
+            {}
+          handrail_2_site_1:
+            {}
+          limb_1_gripper_site:
+            {}
+          limb_2_gripper_site:
+            {}
+          planned/base_link:
+            {}
+          planned/limb_1_base_link:
+            {}
+          planned/limb_1_ee_link:
+            {}
+          planned/limb_1_elbow_joint:
+            {}
+          planned/limb_1_forearm_link:
+            {}
+          planned/limb_1_shoulder_lift_joint:
+            {}
+          planned/limb_1_shoulder_link:
+            {}
+          planned/limb_1_shoulder_pan_joint:
+            {}
+          planned/limb_1_tool0:
+            {}
+          planned/limb_1_upper_arm_link:
+            {}
+          planned/limb_1_wrist_1_joint:
+            {}
+          planned/limb_1_wrist_1_link:
+            {}
+          planned/limb_1_wrist_2_joint:
+            {}
+          planned/limb_1_wrist_2_link:
+            {}
+          planned/limb_1_wrist_3_joint:
+            {}
+          planned/limb_1_wrist_3_link:
+            {}
+          planned/limb_2_base_link:
+            {}
+          planned/limb_2_ee_link:
+            {}
+          planned/limb_2_elbow_joint:
+            {}
+          planned/limb_2_forearm_link:
+            {}
+          planned/limb_2_shoulder_lift_joint:
+            {}
+          planned/limb_2_shoulder_link:
+            {}
+          planned/limb_2_shoulder_pan_joint:
+            {}
+          planned/limb_2_tool0:
+            {}
+          planned/limb_2_upper_arm_link:
+            {}
+          planned/limb_2_wrist_1_joint:
+            {}
+          planned/limb_2_wrist_1_link:
+            {}
+          planned/limb_2_wrist_2_joint:
+            {}
+          planned/limb_2_wrist_2_link:
+            {}
+          planned/limb_2_wrist_3_joint:
+            {}
+          planned/limb_2_wrist_3_link:
+            {}
+          planned/root_joint:
+            {}
+      Update Interval: 0
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: EETrajectoryMarker
       Namespaces:
-        {}
+        wbc_planned_path: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -344,25 +581,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.8979061841964722
+      Distance: 1.8091425895690918
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.019614212214946747
-        Y: 0.07517354190349579
-        Z: 0.7917399406433105
+        X: -0.05658369138836861
+        Y: -0.023074936121702194
+        Z: 1.010299801826477
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3953981399536133
+      Pitch: 0.10039831697940826
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.295393943786621
+      Yaw: 3.4053990840911865
     Saved: ~
 Window Geometry:
   Displays:

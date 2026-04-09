@@ -111,10 +111,10 @@ bool WbcSolver::computeTrajectory(
     // limb_1 は常に初期位置をキープする (ソフト制約)
     phase.swing_targets[fixed_frame] = start_fixed_pose;
 
-    if (i == T / 2) {
-      // 軌道のちょうど半分の時間で、持ち上げた経由点を通るように誘導
-      phase.swing_targets[swing_frame] = via_swing_pose;
-    }
+    // if (i == T / 2) {
+    //   // 軌道のちょうど半分の時間で、持ち上げた経由点を通るように誘導
+    //   phase.swing_targets[swing_frame] = via_swing_pose;
+    // }
     // limb_2 は「道中は自由に動かして良い」とするため、最後のステップのみ目標を与える
     if (i == T - 1) {
       phase.swing_targets[swing_frame] = target_swing_pose;
@@ -122,6 +122,8 @@ bool WbcSolver::computeTrajectory(
 
     // phase.collision_frames = {fixed_frame, swing_frame};
     phase.collision_frames = {swing_frame};
+
+    phase.support_limbs = {fixed_frame};
 
     auto model = createActionModel(x0, phase);
     running_models.push_back(model);
@@ -135,6 +137,7 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.swing_targets[swing_frame] = target_swing_pose;
   // terminal_phase.collision_frames = {fixed_frame, swing_frame};
   terminal_phase.collision_frames = {swing_frame};
+  terminal_phase.support_limbs = {fixed_frame};
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
@@ -202,7 +205,22 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   // ==============================================================
   // ★ 環境との干渉回避コスト（床面バリア）
   // ==============================================================
-  double min_z = -0.02;
+  double floor_z = -1000.0;
+  bool has_support = false;
+
+  for (const auto & limb_name : phase.support_limbs) {
+    pinocchio::FrameIndex fid = model_ptr_->getFrameId(limb_name);
+    double z = data_ptr_->oMf[fid].translation().z();
+
+    if (!has_support || z < floor_z) {
+      floor_z = z;
+      has_support = true;
+    }
+  }
+
+  double env_col_offset = 0.05;
+
+  double min_z = has_support ? (floor_z + env_col_offset) : floor_z;
 
   Eigen::Vector3d lb_trans(-1000.0, -1000.0, min_z);
   Eigen::Vector3d ub_trans(1000.0, 1000.0, 1000.0);

@@ -66,6 +66,9 @@ struct TaskPhase
 
   // 衝突判定を行いたいフレーム名のリスト
   std::vector<std::string> collision_frames;
+
+  // Selection vector
+  std::vector<std::string> support_limbs;
 };
 
 class WbcSolver
