@@ -1,0 +1,57 @@
+// Copyright (c) 2026 Masazumi Imai
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+
+#include <mujoco/mujoco.h>
+
+#include <mutex>
+#include <string>
+#include <vector>
+
+namespace mlivr_sim
+{
+
+class MujocoEngine
+{
+public:
+  explicit MujocoEngine(const std::string & xml_path, bool extract_keyframe = false);
+  ~MujocoEngine();
+
+  void step();
+
+  void setTargetJointPos(const std::vector<double> & target_qpos);
+
+  void setPDGains(double kp, double kd);
+
+  // Getter
+  mjModel * getModel() const { return m_; }
+  mjData * getData() const { return d_; }
+
+private:
+  void computePDControl();
+
+  mjModel * m_ = nullptr;
+  mjData * d_ = nullptr;
+
+  int num_joints_;
+
+  std::vector<double> target_qpos_;
+  double kp_ = 500.0;
+  double kd_ = 30.0;
+
+  std::mutex target_mutex_;
+};
+
+}  // namespace mlivr_sim

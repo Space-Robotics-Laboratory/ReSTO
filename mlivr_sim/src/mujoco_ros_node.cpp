@@ -1,0 +1,202 @@
+// Copyright (c) 2026 Masazumi Imai
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "mlivr_sim/mujoco_ros_node.hpp"
+
+#include <cstdlib>
+
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
+
+namespace mlivr_sim
+{
+
+MujocoRosNode::MujocoRosNode(const rclcpp::NodeOptions & options)
+: rclcpp::Node("mlivr_sim", options)
+{
+  // --- ROS 2 parameters ---
+  bool extract_keyframe = this->declare_parameter<bool>("extract_keyframe", false);
+  double kp = this->declare_parameter<double>("gains.kp", 500.0);
+  double kd = this->declare_parameter<double>("gains.kd", 30.0);
+
+  // --- Publisher ---
+  joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
+
+  for (int i = 0; i < num_limbs_; ++i) {
+    ee_ft_pubs_.push_back(this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/limb_" + std::to_string(i + 1) + "/ee_ft_sensor", 10));
+  }
+
+  // --- Subscriber ---
+  cmd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
+    "/joint_cmds", 10, std::bind(&MujocoRosNode::jointCmdCallback, this, std::placeholders::_1));
+
+  // --- TF Broadcaster ---
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+
+  // --- Engine ---
+  std::string sim_share = ament_index_cpp::get_package_share_directory("mlivr_sim");
+  std::string xml_path = sim_share + "/models/world.xml";
+
+  // Symbolic link for description
+  std::string desc_share = ament_index_cpp::get_package_share_directory("mlivr_description");
+  std::string symlink_cmd = "ln -snf " + desc_share + " " + sim_share + "/../mlivr_description";
+  if (system(symlink_cmd.c_str()) != 0) {
+    RCLCPP_WARN(
+      this->get_logger(), "Failed to create symlink for mlivr_description. Meshes might not load.");
+  }
+
+  engine_ = std::make_unique<MujocoEngine>(xml_path, extract_keyframe);
+  engine_->setPDGains(kp, kd);
+
+  // --- Launch Sim Thread ---
+  is_running_ = true;
+  sim_thread_ = std::thread(&MujocoRosNode::simLoop, this);
+
+  RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
+}
+
+MujocoRosNode::~MujocoRosNode()
+{
+  is_running_ = false;
+  if (sim_thread_.joinable()) {
+    sim_thread_.join();
+  }
+  RCLCPP_INFO(this->get_logger(), "/%s node is destructed.", this->get_name());
+}
+
+void MujocoRosNode::publishJointStates(const rclcpp::Time & now)
+{
+  mjModel * m = engine_->getModel();
+  mjData * d = engine_->getData();
+  int num_joints = m->nv - 6;
+
+  sensor_msgs::msg::JointState msg;
+  msg.header.stamp = now;
+  for (int i = 0; i < num_joints; i++) {
+    msg.position.push_back(d->qpos[7 + i]);
+    msg.velocity.push_back(d->qvel[6 + i]);
+  }
+  joint_state_pub_->publish(msg);
+}
+
+void MujocoRosNode::publishFTSensorData(const rclcpp::Time & now)
+{
+  mjModel * m = engine_->getModel();
+  mjData * d = engine_->getData();
+
+  for (int limb_id = 0; limb_id < num_limbs_; ++limb_id) {
+    std::string f_name = "limb_" + std::to_string(limb_id + 1) + "_ee_force";
+    std::string t_name = "limb_" + std::to_string(limb_id + 1) + "_ee_torque";
+
+    int f_id = mj_name2id(m, mjOBJ_SENSOR, f_name.c_str());
+    int t_id = mj_name2id(m, mjOBJ_SENSOR, t_name.c_str());
+
+    if (f_id >= 0 && t_id >= 0) {
+      geometry_msgs::msg::WrenchStamped msg;
+      msg.header.stamp = now;
+      msg.header.frame_id = "limb_" + std::to_string(limb_id + 1) + "_gripper_site";
+
+      int f_adr = m->sensor_adr[f_id];
+      int t_adr = m->sensor_adr[t_id];
+
+      msg.wrench.force.x = d->sensordata[f_adr + 0];
+      msg.wrench.force.y = d->sensordata[f_adr + 1];
+      msg.wrench.force.z = d->sensordata[f_adr + 2];
+      msg.wrench.torque.x = d->sensordata[t_adr + 0];
+      msg.wrench.torque.y = d->sensordata[t_adr + 1];
+      msg.wrench.torque.z = d->sensordata[t_adr + 2];
+
+      ee_ft_pubs_[limb_id]->publish(msg);
+    }
+  }
+}
+
+void MujocoRosNode::jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+{
+  engine_->setTargetJointPos(msg->data);
+}
+
+void MujocoRosNode::broadcastSiteTransforms(const rclcpp::Time & now)
+{
+  mjModel * m = engine_->getModel();
+  mjData * d = engine_->getData();
+
+  std::vector<geometry_msgs::msg::TransformStamped> transforms;
+  transforms.reserve(m->nsite);
+
+  for (int i = 0; i < m->nsite; ++i) {
+    const char * site_name = mj_id2name(m, mjOBJ_SITE, i);
+    if (!site_name) continue;
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    tf_msg.header.stamp = now;
+    tf_msg.header.frame_id = "world";
+    tf_msg.child_frame_id = std::string(site_name);
+
+    tf_msg.transform.translation.x = d->site_xpos[3 * i + 0];
+    tf_msg.transform.translation.y = d->site_xpos[3 * i + 1];
+    tf_msg.transform.translation.z = d->site_xpos[3 * i + 2];
+
+    int mat_offset = 9 * i;
+    Eigen::Matrix3d R;
+    R << d->site_xmat[mat_offset + 0], d->site_xmat[mat_offset + 1], d->site_xmat[mat_offset + 2],
+      d->site_xmat[mat_offset + 3], d->site_xmat[mat_offset + 4], d->site_xmat[mat_offset + 5],
+      d->site_xmat[mat_offset + 6], d->site_xmat[mat_offset + 7], d->site_xmat[mat_offset + 8];
+
+    Eigen::Quaterniond q(R);
+    tf_msg.transform.rotation.w = q.w();
+    tf_msg.transform.rotation.x = q.x();
+    tf_msg.transform.rotation.y = q.y();
+    tf_msg.transform.rotation.z = q.z();
+
+    transforms.push_back(tf_msg);
+  }
+
+  if (!transforms.empty()) {
+    tf_broadcaster_->sendTransform(transforms);
+  }
+}
+
+void MujocoRosNode::simLoop()
+{
+  renderer_ = std::make_unique<MujocoRenderer>(engine_.get());
+
+  auto last_pub_time = this->now();
+  const double kPubRate = 1.0 / 60.0;  // 60Hz
+
+  while (is_running_ && rclcpp::ok() && (!renderer_ || !renderer_->isWindowClosed())) {
+    engine_->step();
+
+    auto current_time = this->now();
+    if ((current_time - last_pub_time).seconds() >= kPubRate) {
+      publishJointStates(current_time);
+      publishFTSensorData(current_time);
+
+      last_pub_time = current_time;
+    }
+
+    broadcastSiteTransforms(current_time);
+
+    if (renderer_) {
+      renderer_->render();
+    }
+  }
+
+  renderer_.reset();
+}
+
+}  // namespace mlivr_sim
+
+RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_sim::MujocoRosNode)

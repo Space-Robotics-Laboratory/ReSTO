@@ -1,4 +1,4 @@
-mlivr_mj_sim:
+mlivr_sim:
   ros__parameters:
     extract_keyframe: false # true/false
 

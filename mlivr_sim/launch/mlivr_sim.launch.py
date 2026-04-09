@@ -22,14 +22,14 @@ def generate_launch_description():
     pkg_path = get_package_share_directory('mlivr_sim')
     sim_params = os.path.join(pkg_path, 'config', 'sim_params.yaml')
 
-    mlivr_mj_sim_node = Node(
+    mlivr_sim_node = Node(
         package='mlivr_sim',
-        executable='mlivr_mj_sim_node',
-        name='mlivr_mj_sim',
+        executable='mlivr_sim_node_exec',
+        name='mlivr_sim',
         output='screen',
         parameters=[sim_params]
     )
 
     return LaunchDescription([
-        mlivr_mj_sim_node,
+        mlivr_sim_node,
     ])
