@@ -52,7 +52,8 @@ WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverPar
 }
 
 bool WbcSolver::computeTrajectory(
-  const std::vector<double> & current_q, const std::string & fixed_frame,
+  const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
+  const std::vector<double> & current_joint_pos, const std::string & fixed_frame,
   const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset)
 {
   std::cout << "[WbcSolver] === Starting Trajectory Optimization ===" << std::endl;
@@ -60,19 +61,14 @@ bool WbcSolver::computeTrajectory(
   int num_joints = model_ptr_->nv - 6;
 
   Eigen::VectorXd q = Eigen::VectorXd::Zero(model_ptr_->nq);
-  // TODO: Change hard cord
-  q(0) = 0.0;  // x
-  q(1) = 0.1;  // y
-  q(2) = 1.0;  // z
-  q(3) = 0.0;  // qx
-  q(4) = 0.0;  // qy
-  q(5) = 0.0;  // qz
-  q(6) = 1.0;  // qw
+  q.head(7) = base_pose;
   for (int i = 0; i < num_joints; ++i) {
-    q(7 + i) = current_q[i];
+    q(7 + i) = current_joint_pos[i];
   }
 
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_ptr_->nv);
+  v.head(6) = base_twist;
+
   Eigen::VectorXd x0(model_ptr_->nq + model_ptr_->nv);
   x0 << q, v;
 

@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -56,6 +57,8 @@ private:
 
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
   void triggerCallback(const std_msgs::msg::Empty::SharedPtr msg);
 
   bool computeTrajectory();
@@ -65,6 +68,7 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ee_path_marker_pub_;
   // Subscriber
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
   // Timer
   rclcpp::TimerBase::SharedPtr timer_;
@@ -79,7 +83,11 @@ private:
   int num_joints_;
   std::vector<std::string> ee_frames_;
 
-  std::vector<double> current_q_;
+  std::vector<double> current_joint_pos_;
+
+  bool is_odom_received_ = false;
+  Eigen::VectorXd current_base_pose_;   // [x, y, z, qx, qy, qz, qw]
+  Eigen::VectorXd current_base_twist_;  // [vx, vy, vz, wx, wy, wz]
 
   bool is_initialized_ = false;
   size_t playback_idx_ = 0;

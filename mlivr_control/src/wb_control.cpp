@@ -30,6 +30,8 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_states", 10, std::bind(&WBControl::jointStateCallback, this, std::placeholders::_1));
+  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    "/odom", 10, std::bind(&WBControl::odomCallback, this, std::placeholders::_1));
   trigger_sub_ = this->create_subscription<std_msgs::msg::Empty>(
     "/start_wbc", 10, std::bind(&WBControl::triggerCallback, this, std::placeholders::_1));
 
@@ -61,7 +63,11 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
 
   num_joints_ = model_ptr_->nv - 6;
-  current_q_.resize(num_joints_, 0.0);
+  current_joint_pos_.resize(num_joints_, 0.0);
+
+  current_base_pose_ = Eigen::VectorXd::Zero(7);
+  current_base_pose_(6) = 1.0;  // Quaternion
+  current_base_twist_ = Eigen::VectorXd::Zero(6);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
@@ -190,24 +196,22 @@ void WBControl::publishTrajectoryMarker()
 
 void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  if (is_initialized_) {
+  if (is_initialized_ || !is_odom_received_) {
     return;
   }
 
   for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
-    current_q_[i] = msg->position[i];
+    current_joint_pos_[i] = msg->position[i];
   }
 
   if (!is_triggered_) {
     std::vector<Eigen::VectorXd> dummy_xs;
     Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
 
-    // Initial base pose (match with MuJoCo) // TODO: Change hard cord
-    q_all(0) = 0.0;
-    q_all(1) = 0.1;
-    q_all(2) = 1.0;
-    q_all(6) = 1.0;
-    for (int i = 0; i < num_joints_; ++i) q_all(7 + i) = current_q_[i];
+    q_all.head(7) = current_base_pose_;
+    for (int i = 0; i < num_joints_; ++i) {
+      q_all(7 + i) = current_joint_pos_[i];
+    }
 
     dummy_xs.push_back(q_all);
 
@@ -221,10 +225,33 @@ void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
 
   Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
 
-  if (wbc_solver_->computeTrajectory(current_q_, ee_frames_[0], ee_frames_[1], offset)) {
+  if (
+    wbc_solver_->computeTrajectory(
+      current_base_pose_, current_base_twist_, current_joint_pos_, ee_frames_[0], ee_frames_[1],
+      offset)) {
     is_initialized_ = true;
     publishTrajectoryMarker();
   }
+}
+
+void WBControl::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+  current_base_pose_(0) = msg->pose.pose.position.x;
+  current_base_pose_(1) = msg->pose.pose.position.y;
+  current_base_pose_(2) = msg->pose.pose.position.z;
+  current_base_pose_(3) = msg->pose.pose.orientation.x;
+  current_base_pose_(4) = msg->pose.pose.orientation.y;
+  current_base_pose_(5) = msg->pose.pose.orientation.z;
+  current_base_pose_(6) = msg->pose.pose.orientation.w;
+
+  current_base_twist_(0) = msg->twist.twist.linear.x;
+  current_base_twist_(1) = msg->twist.twist.linear.y;
+  current_base_twist_(2) = msg->twist.twist.linear.z;
+  current_base_twist_(3) = msg->twist.twist.angular.x;
+  current_base_twist_(4) = msg->twist.twist.angular.y;
+  current_base_twist_(5) = msg->twist.twist.angular.z;
+
+  is_odom_received_ = true;
 }
 
 void WBControl::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
