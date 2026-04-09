@@ -38,6 +38,8 @@ MujocoRosNode::MujocoRosNode(const rclcpp::NodeOptions & options)
       "~/limb_" + std::to_string(i + 1) + "/ee_ft_sensor", 10));
   }
 
+  odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+
   // --- Subscriber ---
   cmd_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_cmds", 10, std::bind(&MujocoRosNode::jointCmdCallback, this, std::placeholders::_1));
@@ -130,6 +132,34 @@ void MujocoRosNode::publishFTSensorData(const rclcpp::Time & now)
   }
 }
 
+void MujocoRosNode::publishOdometry(const rclcpp::Time & now)
+{
+  mjData * d = engine_->getData();
+
+  nav_msgs::msg::Odometry msg;
+  msg.header.stamp = now;
+  msg.header.frame_id = "world";
+  msg.child_frame_id = "base_link";
+
+  msg.pose.pose.position.x = d->qpos[0];
+  msg.pose.pose.position.y = d->qpos[1];
+  msg.pose.pose.position.z = d->qpos[2];
+  // HACK: MuJoCo quaternion [w, x, y, z]
+  msg.pose.pose.orientation.w = d->qpos[3];
+  msg.pose.pose.orientation.x = d->qpos[4];
+  msg.pose.pose.orientation.y = d->qpos[5];
+  msg.pose.pose.orientation.z = d->qpos[6];
+
+  msg.twist.twist.linear.x = d->qvel[0];
+  msg.twist.twist.linear.y = d->qvel[1];
+  msg.twist.twist.linear.z = d->qvel[2];
+  msg.twist.twist.angular.x = d->qvel[3];
+  msg.twist.twist.angular.y = d->qvel[4];
+  msg.twist.twist.angular.z = d->qvel[5];
+
+  odom_pub_->publish(msg);
+}
+
 void MujocoRosNode::jointCmdCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   engine_->setControlCommand(msg->position, msg->velocity, msg->effort);
@@ -214,6 +244,7 @@ void MujocoRosNode::simLoop()
     if ((current_time - last_pub_time).seconds() >= kPubRate) {
       publishJointStates(current_time);
       publishFTSensorData(current_time);
+      publishOdometry(current_time);
 
       last_pub_time = current_time;
     }

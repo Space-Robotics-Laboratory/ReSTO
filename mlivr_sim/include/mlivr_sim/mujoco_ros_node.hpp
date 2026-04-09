@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
@@ -41,6 +42,7 @@ public:
 private:
   void publishJointStates(const rclcpp::Time & now);
   void publishFTSensorData(const rclcpp::Time & now);
+  void publishOdometry(const rclcpp::Time & now);
   void broadcastTransforms(const rclcpp::Time & now);
 
   void jointCmdCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
@@ -60,6 +62,7 @@ private:
   // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
   std::vector<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr> ee_ft_pubs_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   // Subscriber
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr cmd_sub_;
   // TF Broadcaster
