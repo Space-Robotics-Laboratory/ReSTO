@@ -23,7 +23,7 @@ namespace mlivr_control
 WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", options)
 {
   // Publisher
-  cmd_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("joint_cmds", 10);
+  cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_cmds", 10);
 
   // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -81,18 +81,33 @@ void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
 void WBControl::publishCommandStep()
 {
   const auto & optimized_xs = wbc_solver_->getOptimizedXs();
+  const auto & optimized_us = wbc_solver_->getOptimizedUs();  // include only joint torque
 
   if (!is_initialized_ || optimized_xs.empty() || playback_idx_ >= optimized_xs.size()) {
     return;
   }
 
-  Eigen::VectorXd q_opt = optimized_xs[playback_idx_].head(model_ptr_->nq);
+  sensor_msgs::msg::JointState cmd_msg;
+  cmd_msg.header.stamp = this->now();
 
-  std_msgs::msg::Float64MultiArray cmd_msg;
-  cmd_msg.data.resize(num_joints_);
-  for (int i = 0; i < num_joints_; ++i) {
-    cmd_msg.data[i] = q_opt(7 + i);
+  Eigen::VectorXd q_des = optimized_xs[playback_idx_].segment(7, num_joints_);
+  Eigen::VectorXd v_des = optimized_xs[playback_idx_].segment(model_ptr_->nv + 6, num_joints_);
+
+  Eigen::VectorXd tau_opt(num_joints_);
+  if (playback_idx_ < optimized_us.size()) {
+    tau_opt = optimized_us[playback_idx_];
+  } else {
+    tau_opt = Eigen::VectorXd::Zero(num_joints_);
   }
+
+  for (int i = 0; i < num_joints_; ++i) {
+    cmd_msg.name.push_back("joint_" + std::to_string(i));  // TODO: Temporary
+
+    cmd_msg.position.push_back(q_des(i));
+    cmd_msg.velocity.push_back(v_des(i));
+    cmd_msg.effort.push_back(tau_opt(i));
+  }
+
   cmd_pub_->publish(cmd_msg);
 
   playback_idx_++;

@@ -44,7 +44,7 @@ private:
   void publishFTSensorData(const rclcpp::Time & now);
   void broadcastSiteTransforms(const rclcpp::Time & now);
 
-  void jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
+  void jointCmdCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   void simLoop();
 
@@ -62,7 +62,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
   std::vector<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr> ee_ft_pubs_;
   // Subscriber
-  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr cmd_sub_;
   // TF Broadcaster
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 };

@@ -69,6 +69,8 @@ MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
 
   num_joints_ = m_->nv - 6;
   target_qpos_.resize(num_joints_, 0.0);
+  target_qvel_.resize(num_joints_, 0.0);
+  target_tau_ff_.resize(num_joints_, 0.0);
   for (int i = 0; i < num_joints_; i++) {
     target_qpos_[i] = d_->qpos[7 + i];
   }
@@ -96,6 +98,17 @@ void MujocoEngine::setTargetJointPos(const std::vector<double> & target_qpos)
   }
 }
 
+void MujocoEngine::setControlCommand(
+  const std::vector<double> & q, const std::vector<double> & v, const std::vector<double> & tau)
+{
+  std::lock_guard<std::mutex> lock(target_mutex_);
+  for (int i = 0; i < num_joints_; i++) {
+    target_qpos_[i] = (i < (int)q.size()) ? q[i] : target_qpos_[i];
+    target_qvel_[i] = (i < (int)v.size()) ? v[i] : 0.0;
+    target_tau_ff_[i] = (i < (int)tau.size()) ? tau[i] : 0.0;
+  }
+}
+
 void MujocoEngine::setPDGains(double kp, double kd)
 {
   kp_ = kp;
@@ -112,10 +125,10 @@ void MujocoEngine::computePDControl(const mjModel * m, mjData * d)
   (void)m;
   std::lock_guard<std::mutex> lock(target_mutex_);
   for (int i = 0; i < num_joints_; i++) {
-    double error = target_qpos_[i] - d->qpos[7 + i];
-    double error_dot = 0.0 - d->qvel[6 + i];
+    double error_q = target_qpos_[i] - d->qpos[7 + i];
+    double error_v = target_qvel_[i] - d->qvel[6 + i];
 
-    double tau = (kp_ * error) + (kd_ * error_dot);
+    double tau = target_tau_ff_[i] + (kp_ * error_q) + (kd_ * error_v);
 
     d->qfrc_applied[6 + i] = tau;
   }

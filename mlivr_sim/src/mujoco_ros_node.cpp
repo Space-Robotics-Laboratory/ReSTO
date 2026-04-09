@@ -39,7 +39,7 @@ MujocoRosNode::MujocoRosNode(const rclcpp::NodeOptions & options)
   }
 
   // --- Subscriber ---
-  cmd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
+  cmd_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_cmds", 10, std::bind(&MujocoRosNode::jointCmdCallback, this, std::placeholders::_1));
 
   // --- TF Broadcaster ---
@@ -85,6 +85,8 @@ void MujocoRosNode::publishJointStates(const rclcpp::Time & now)
   sensor_msgs::msg::JointState msg;
   msg.header.stamp = now;
   for (int i = 0; i < num_joints; i++) {
+    msg.name.push_back("joint_" + std::to_string(i));  // TODO: Temporary
+
     msg.position.push_back(d->qpos[7 + i]);
     msg.velocity.push_back(d->qvel[6 + i]);
   }
@@ -123,9 +125,9 @@ void MujocoRosNode::publishFTSensorData(const rclcpp::Time & now)
   }
 }
 
-void MujocoRosNode::jointCmdCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+void MujocoRosNode::jointCmdCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  engine_->setTargetJointPos(msg->data);
+  engine_->setControlCommand(msg->position, msg->velocity, msg->effort);
 }
 
 void MujocoRosNode::broadcastSiteTransforms(const rclcpp::Time & now)
@@ -176,8 +178,17 @@ void MujocoRosNode::simLoop()
   auto last_pub_time = this->now();
   const double kPubRate = 1.0 / 60.0;  // 60Hz
 
+  // Real-time at the start of the simulation
+  auto start_real_time = this->now();
+
   while (is_running_ && rclcpp::ok() && (!renderer_ || !renderer_->isWindowClosed())) {
-    engine_->step();
+    // HACK: Advance the time in MuJoCo in sync with real-time
+    double elapsed_real_time = (this->now() - start_real_time).seconds();
+
+    // HACK: Run the simulation at high speed until MuJoCo's internal time (d_->time) catches up with real time
+    while (engine_->getData()->time < elapsed_real_time) {
+      engine_->step();
+    }
 
     auto current_time = this->now();
     if ((current_time - last_pub_time).seconds() >= kPubRate) {

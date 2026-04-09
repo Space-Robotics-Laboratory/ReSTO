@@ -145,8 +145,11 @@ bool WbcSolver::computeTrajectory(
   solver.solve(solver.get_xs(), solver.get_us(), 500, false);
 
   optimized_xs_ = solver.get_xs();
+  optimized_us_ = solver.get_us();
+
   std::cout << "[WbcSolver] Optimization completed! Trajectory length: " << optimized_xs_.size()
             << std::endl;
+
   return true;
 }
 

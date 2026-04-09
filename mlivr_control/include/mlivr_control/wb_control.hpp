@@ -49,7 +49,7 @@ private:
   bool computeTrajectory();
 
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;

@@ -81,6 +81,7 @@ public:
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
   const std::vector<Eigen::VectorXd> & getOptimizedXs() const { return optimized_xs_; }
+  const std::vector<Eigen::VectorXd> & getOptimizedUs() const { return optimized_us_; }
 
 private:
   std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
@@ -96,6 +97,7 @@ private:
   std::shared_ptr<crocoddyl::ActuationModelFloatingBase> actuation_;
 
   std::vector<Eigen::VectorXd> optimized_xs_;
+  std::vector<Eigen::VectorXd> optimized_us_;
 
   WbcSolverParams params_;
 };

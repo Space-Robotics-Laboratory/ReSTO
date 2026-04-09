@@ -33,6 +33,9 @@ public:
 
   void setTargetJointPos(const std::vector<double> & target_qpos);
 
+  void setControlCommand(
+    const std::vector<double> & q, const std::vector<double> & v, const std::vector<double> & tau);
+
   void setPDGains(double kp, double kd);
 
   static void mjcbControlWrapper(const mjModel * m, mjData * d);
@@ -50,6 +53,8 @@ private:
   int num_joints_;
 
   std::vector<double> target_qpos_;
+  std::vector<double> target_qvel_;
+  std::vector<double> target_tau_ff_;
   double kp_ = 500.0;
   double kd_ = 30.0;
 
