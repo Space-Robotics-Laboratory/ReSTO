@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-      Splitter Ratio: 0.5586923956871033
+      Splitter Ratio: 0.6612184047698975
     Tree Height: 1379
   - Class: rviz_common/Selection
     Name: Selection
@@ -307,7 +307,7 @@ Visualization Manager:
         limb_1_base_link:
           Value: false
         limb_1_ee_link:
-          Value: true
+          Value: false
         limb_1_forearm_link:
           Value: false
         limb_1_gripper_site:
@@ -315,7 +315,7 @@ Visualization Manager:
         limb_1_shoulder_link:
           Value: false
         limb_1_tool0:
-          Value: false
+          Value: true
         limb_1_upper_arm_link:
           Value: false
         limb_1_wrist_1_link:
@@ -327,7 +327,7 @@ Visualization Manager:
         limb_2_base_link:
           Value: false
         limb_2_ee_link:
-          Value: true
+          Value: false
         limb_2_forearm_link:
           Value: false
         limb_2_gripper_site:
@@ -335,7 +335,7 @@ Visualization Manager:
         limb_2_shoulder_link:
           Value: false
         limb_2_tool0:
-          Value: false
+          Value: true
         limb_2_upper_arm_link:
           Value: false
         limb_2_wrist_1_link:
@@ -361,7 +361,7 @@ Visualization Manager:
         planned/limb_1_shoulder_pan_joint:
           Value: false
         planned/limb_1_tool0:
-          Value: false
+          Value: true
         planned/limb_1_upper_arm_link:
           Value: false
         planned/limb_1_wrist_1_joint:
@@ -391,7 +391,7 @@ Visualization Manager:
         planned/limb_2_shoulder_pan_joint:
           Value: false
         planned/limb_2_tool0:
-          Value: false
+          Value: true
         planned/limb_2_upper_arm_link:
           Value: false
         planned/limb_2_wrist_1_joint:
@@ -526,7 +526,7 @@ Visualization Manager:
       Enabled: true
       Name: EETrajectoryMarker
       Namespaces:
-        wbc_planned_path: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
