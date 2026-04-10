@@ -173,7 +173,6 @@ void GJControl::controlLoop()
   std::lock_guard<std::mutex> lock(state_mutex_);
 
   if (!is_initialized_) {
-    publishCommandStep(current_q_);
     return;
   }
 
