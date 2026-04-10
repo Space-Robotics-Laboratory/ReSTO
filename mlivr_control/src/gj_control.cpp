@@ -21,11 +21,20 @@ namespace mlivr_control
 
 GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", options)
 {
+  // Publisher
   cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_cmds", 10);
+  ee_path_marker_pub_ =
+    this->create_publisher<visualization_msgs::msg::Marker>("planned_trajectory", 10);
 
+  // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_states", 10, std::bind(&GJControl::jointStateCallback, this, std::placeholders::_1));
+  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    "/odom", 10, std::bind(&GJControl::odomCallback, this, std::placeholders::_1));
+  trigger_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+    "/start_gj", 10, std::bind(&GJControl::triggerCallback, this, std::placeholders::_1));
 
+  // Timer
   timer_ = this->create_wall_timer(
     std::chrono::milliseconds(10), std::bind(&GJControl::controlLoop, this));
 
@@ -43,6 +52,9 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
   current_v_.resize(num_joints_, 0.0);
   target_q_.resize(num_joints_, 0.0);
   is_initialized_ = false;
+
+  current_base_pose_ = Eigen::VectorXd::Zero(7);
+  current_base_pose_(6) = 1.0;
 
   tf_transformer_ = std::make_unique<coordinate_transformer::CoordinateTransformer>(this);
 
@@ -64,6 +76,52 @@ void GJControl::publishCommandStep(const std::vector<double> & q)
   cmd_pub_->publish(cmd_msg);
 }
 
+void GJControl::publishTrajectoryMarker()
+{
+  if (!pos_spline_) return;
+
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = "world";
+  marker.header.stamp = this->now();
+  marker.ns = "gj_planned_path";
+  marker.id = 0;
+  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.005;  // Line width
+
+  marker.color.r = 0.0f;
+  marker.color.g = 1.0f;
+  marker.color.b = 1.0f;
+  marker.color.a = 1.0f;
+
+  // Compute ee frame in world frame
+  int nq = robot_core_->getModel().nq;
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
+  q.head(7) = current_base_pose_;
+  for (int i = 0; i < num_joints_; ++i) q(7 + i) = current_q_[i];
+
+  pinocchio::SE3 pose_L = kinematics_->solveFK(q, ee_frames_[0]);
+
+  // Convert spline trajectory in world frame
+  double dt = 0.05;
+  for (double t = 0; t <= duration_; t += dt) {
+    Eigen::Vector3d local_pos = pos_spline_->getPosition(t);
+
+    // HACK: Convert local frame to world frame in a single step
+    Eigen::Vector3d world_pos = pose_L.act(local_pos);
+
+    geometry_msgs::msg::Point p;
+    p.x = world_pos.x();
+    p.y = world_pos.y();
+    p.z = world_pos.z();
+    marker.points.push_back(p);
+  }
+
+  ee_path_marker_pub_->publish(marker);
+  RCLCPP_INFO(this->get_logger(), "Published GJ spline trajectory marker to RViz2.");
+}
+
 void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
@@ -77,24 +135,52 @@ void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
     }
   }
 
-  if (!is_initialized_) {
-    target_q_ = current_q_;
-
-    if (this->startTrajectory()) {
-      is_initialized_ = true;
+  if (!is_initialized_ && is_odom_received_) {
+    if (is_triggered_) {
+      target_q_ = current_q_;
+      if (this->startTrajectory()) {
+        is_initialized_ = true;
+        publishTrajectoryMarker();
+      }
     }
+  }
+}
+
+void GJControl::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  current_base_pose_(0) = msg->pose.pose.position.x;
+  current_base_pose_(1) = msg->pose.pose.position.y;
+  current_base_pose_(2) = msg->pose.pose.position.z;
+  current_base_pose_(3) = msg->pose.pose.orientation.x;
+  current_base_pose_(4) = msg->pose.pose.orientation.y;
+  current_base_pose_(5) = msg->pose.pose.orientation.z;
+  current_base_pose_(6) = msg->pose.pose.orientation.w;
+  is_odom_received_ = true;
+}
+
+void GJControl::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
+{
+  (void)msg;
+  if (!is_triggered_ && !is_initialized_) {
+    RCLCPP_INFO(this->get_logger(), "GJ Control Triggered! Generating spline trajectory...");
+    is_triggered_ = true;
   }
 }
 
 void GJControl::controlLoop()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  if (!is_initialized_) return;
+
+  if (!is_initialized_) {
+    publishCommandStep(current_q_);
+    return;
+  }
 
   // --- 1. 一般化座標 q の構築 ---
   int nq = robot_core_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
-  q(6) = 1.0;
+  q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
     q(7 + i) = current_q_[i];
   }
@@ -242,7 +328,7 @@ bool GJControl::startTrajectory()
   // --- 2. 現在の手先位置の取得 (FK使用) ---
   int nq = robot_core_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
-  q(6) = 1.0;
+  q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) q(7 + i) = current_q_[i];
 
   pinocchio::SE3 pose_L = kinematics_->solveFK(q, ee_frames_[0]);

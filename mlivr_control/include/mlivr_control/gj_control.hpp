@@ -25,8 +25,11 @@
 #include "trajectory_generator/spline.hpp"
 #include "trajectory_generator/trajectory_generator.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/empty.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.hpp"
@@ -48,14 +51,26 @@ public:
 private:
   void publishCommandStep(const std::vector<double> & q);
 
+  void publishTrajectoryMarker();
+
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
+
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
+  void triggerCallback(const std_msgs::msg::Empty::SharedPtr msg);
 
   void controlLoop();
 
   bool startTrajectory();
 
+  // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ee_path_marker_pub_;
+  // Subscriber
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
+  // Timer
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;
@@ -78,6 +93,11 @@ private:
 
   double trajectory_start_time_ = 0.0;
   bool is_trajectory_active_ = false;
+
+  bool is_odom_received_ = false;
+  Eigen::VectorXd current_base_pose_;  // [x, y, z, qx, qy, qz, qw]
+
+  bool is_triggered_ = false;
 };
 
 }  // namespace mlivr_control
