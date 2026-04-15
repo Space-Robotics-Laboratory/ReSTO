@@ -17,7 +17,7 @@ clc; clear; close all;
 %% User settings
 
 % NOTE: Put csv files generated from rosbag under LIMBERO/tools/rosbag/ directory.
-csv_file = "csv" + filesep + "rosbag2_2026_04_14-19_43_26" + ".csv";
+csv_file = "csv" + filesep + "rosbag2_2026_04_15-17_15_18" + ".csv";
 
 save_fig = true;  % true/false
 
