@@ -145,11 +145,11 @@ Eigen::VectorXd GJControl::computeCommandStep()
   v_stacked.head<6>() = v_target_local_L;
   v_stacked.tail<6>() = v_target_local_R;
 
-  double lambda = 0.0;
-  Eigen::MatrixXd A =
-    J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
-  Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
-  // Eigen::VectorXd q_dot_cmd_all = J_stacked.inverse() * v_stacked;
+  // double lambda = 0.0;
+  // Eigen::MatrixXd A =
+  //   J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
+  // Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
+  Eigen::VectorXd q_dot_cmd_all = J_stacked.inverse() * v_stacked;
 
   double dt = 0.01;
   sensor_msgs::msg::JointState cmd_msg;

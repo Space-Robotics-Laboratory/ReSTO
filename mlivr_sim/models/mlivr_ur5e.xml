@@ -2,7 +2,7 @@
   <compiler angle="radian"/>
 
   <default>
-    <joint armature="1.0" frictionloss="0.1" damping="0.1" limited="true" />
+    <joint armature="0.5" frictionloss="0.01" damping="0.1" limited="true" />
   </default>
 
   <visual>
