@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MLIVR_CONTROL__VISIBILITY_CONTROL_HPP_
-#define MLIVR_CONTROL__VISIBILITY_CONTROL_HPP_
+#ifndef MLIVR_CONTROL__VISIBILITY_CONTROL_H_
+#define MLIVR_CONTROL__VISIBILITY_CONTROL_H_
 
 // This logic was borrowed (then namespaced) from the examples on the gcc wiki:
 //     https://gcc.gnu.org/wiki/Visibility
@@ -46,4 +46,4 @@
 #define MLIVR_CONTROL_PUBLIC_TYPE
 #endif
 
-#endif  // MLIVR_CONTROL__VISIBILITY_CONTROL_HPP_
+#endif  // MLIVR_CONTROL__VISIBILITY_CONTROL_H_

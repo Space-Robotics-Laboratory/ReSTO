@@ -26,7 +26,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "mlivr_control/base_controller.hpp"
-#include "mlivr_control/visibility_control.hpp"
+#include "mlivr_control/visibility_control.h"
 #include "mlivr_model/dynamics.hpp"
 #include "mlivr_model/kinematics.hpp"
 

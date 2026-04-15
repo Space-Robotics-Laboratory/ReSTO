@@ -29,7 +29,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "mlivr_control/types.hpp"
-#include "mlivr_control/visibility_control.hpp"
+#include "mlivr_control/visibility_control.h"
 #include "mlivr_model/core.hpp"
 
 namespace mlivr_control
