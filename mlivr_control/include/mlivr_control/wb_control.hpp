@@ -40,18 +40,16 @@ public:
   virtual ~WBControl() = default;
 
 protected:
+  void publishWaitingState() override;
+
   bool generateTrajectory() override;
 
   Eigen::VectorXd computeCommandStep() override;
 
   std::vector<Eigen::Vector3d> getPlannedPath() override;
 
-  void publishWaitingState() override;
-
 private:
   void publishPlannedRobotState(const Eigen::VectorXd & q_all);
-
-  void publishTargetTF(const pinocchio::SE3 & target_pose);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::unique_ptr<WbcSolver> wbc_solver_;

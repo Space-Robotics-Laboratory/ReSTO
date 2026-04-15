@@ -58,6 +58,9 @@ bool WBControl::generateTrajectory()
     pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(ee_frames_[1]);
     target_ee_pose_se3_ = data.oMf[swing_id];
     target_ee_pose_se3_.translation() += offset;
+
+    Eigen::Quaterniond q_target(target_ee_pose_se3_.rotation());
+    this->publishTargetTF(target_ee_pose_se3_.translation(), q_target, "target/" + ee_frames_[1]);
   }
 
   bool success = wbc_solver_->computeTrajectory(
@@ -107,7 +110,9 @@ Eigen::VectorXd WBControl::computeCommandStep()
 
   Eigen::VectorXd current_planned_q = optimized_xs[playback_idx_].head(model_ptr_->nq);
   publishPlannedRobotState(current_planned_q);
-  publishTargetTF(target_ee_pose_se3_);
+
+  Eigen::Quaterniond q_target(target_ee_pose_se3_.rotation());
+  this->publishTargetTF(target_ee_pose_se3_.translation(), q_target, "target/" + ee_frames_[1]);
 
   playback_idx_++;
 
@@ -184,26 +189,6 @@ void WBControl::publishPlannedRobotState(const Eigen::VectorXd & q_all)
   if (!transforms.empty()) {
     tf_broadcaster_->sendTransform(transforms);
   }
-}
-
-void WBControl::publishTargetTF(const pinocchio::SE3 & target_pose)
-{
-  geometry_msgs::msg::TransformStamped tf_msg;
-  tf_msg.header.stamp = this->now();
-  tf_msg.header.frame_id = "world";
-  tf_msg.child_frame_id = "target/ee_pose";
-
-  tf_msg.transform.translation.x = target_pose.translation().x();
-  tf_msg.transform.translation.y = target_pose.translation().y();
-  tf_msg.transform.translation.z = target_pose.translation().z();
-
-  Eigen::Quaterniond q(target_pose.rotation());
-  tf_msg.transform.rotation.x = q.x();
-  tf_msg.transform.rotation.y = q.y();
-  tf_msg.transform.rotation.z = q.z();
-  tf_msg.transform.rotation.w = q.w();
-
-  tf_broadcaster_->sendTransform(tf_msg);
 }
 
 }  // namespace mlivr_control

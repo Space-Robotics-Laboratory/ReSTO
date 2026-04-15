@@ -117,7 +117,15 @@ Eigen::VectorXd GJControl::computeCommandStep()
   if (is_trajectory_active_) {
     double t = this->now().seconds() - trajectory_start_time_;
     double t_eval = (t > duration_) ? duration_ : t;
-    publishTargetTF(t_eval);
+
+    // Planned ee pose on trajectory
+    Eigen::Vector3d p_planned = pos_spline_->getPosition(t_eval);
+    Eigen::Quaterniond q_planned = ori_spline_->getOrientation(t_eval);
+    this->publishTargetTF(p_planned, q_planned, "planned/" + ee_frames_[1]);
+    // Target ee pose
+    Eigen::Vector3d p_target = pos_spline_->getPosition(duration_);
+    Eigen::Quaterniond q_target = ori_spline_->getOrientation(duration_);
+    this->publishTargetTF(p_target, q_target, "target/" + ee_frames_[1]);
 
     if (t > duration_) {
       v_target_local_R = Eigen::VectorXd::Zero(6);
@@ -169,27 +177,6 @@ std::vector<Eigen::Vector3d> GJControl::getPlannedPath()
     path.push_back(pos_spline_->getPosition(t));
   }
   return path;
-}
-
-void GJControl::publishTargetTF(double t)
-{
-  Eigen::Vector3d p_target = pos_spline_->getPosition(t);
-  Eigen::Quaterniond q_target = ori_spline_->getOrientation(t);
-
-  geometry_msgs::msg::TransformStamped tf_msg;
-  tf_msg.header.stamp = this->now();
-  tf_msg.header.frame_id = "world";
-  tf_msg.child_frame_id = "planned/" + ee_frames_[1];
-
-  tf_msg.transform.translation.x = p_target.x();
-  tf_msg.transform.translation.y = p_target.y();
-  tf_msg.transform.translation.z = p_target.z();
-  tf_msg.transform.rotation.x = q_target.x();
-  tf_msg.transform.rotation.y = q_target.y();
-  tf_msg.transform.rotation.z = q_target.z();
-  tf_msg.transform.rotation.w = q_target.w();
-
-  tf_broadcaster_->sendTransform(tf_msg);
 }
 
 }  // namespace mlivr_control

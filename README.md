@@ -15,7 +15,7 @@
 
   ```bash
   . install/setup.bash
-  ros2 topic pub --once /start_wbc std_msgs/msg/Empty "{}"
+  ros2 topic pub --once /start_control std_msgs/msg/Empty "{}"
   ```
 
 ### GJ Simulation
@@ -31,5 +31,5 @@
 
   ```bash
   . install/setup.bash
-  ros2 topic pub --once /start_gj std_msgs/msg/Empty "{}"
+  ros2 topic pub --once /start_control std_msgs/msg/Empty "{}"
   ```

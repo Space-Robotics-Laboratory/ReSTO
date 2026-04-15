@@ -43,13 +43,17 @@ public:
   virtual ~BaseController() = default;
 
 protected:
+  void publishTargetTF(
+    const Eigen::Vector3d & translation, const Eigen::Quaterniond & rotation,
+    const std::string & child_frame_id);
+
+  virtual void publishWaitingState() {}
+
   virtual bool generateTrajectory() = 0;
 
   virtual Eigen::VectorXd computeCommandStep() = 0;
 
   virtual std::vector<Eigen::Vector3d> getPlannedPath() = 0;
-
-  virtual void publishWaitingState() {}
 
   // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;

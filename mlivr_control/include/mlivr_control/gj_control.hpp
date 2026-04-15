@@ -48,8 +48,6 @@ protected:
   std::vector<Eigen::Vector3d> getPlannedPath() override;
 
 private:
-  void publishTargetTF(double t);
-
   std::unique_ptr<mlivr_model::Kinematics> kinematics_;
   std::unique_ptr<mlivr_model::Dynamics> dynamics_;
 

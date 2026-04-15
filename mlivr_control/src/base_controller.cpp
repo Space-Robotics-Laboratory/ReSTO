@@ -58,6 +58,27 @@ BaseController::BaseController(const std::string & node_name, const rclcpp::Node
   current_base_twist_ = Eigen::VectorXd::Zero(6);
 }
 
+void BaseController::publishTargetTF(
+  const Eigen::Vector3d & translation, const Eigen::Quaterniond & rotation,
+  const std::string & child_frame_id)
+{
+  geometry_msgs::msg::TransformStamped tf_msg;
+  tf_msg.header.stamp = this->now();
+  tf_msg.header.frame_id = "world";
+  tf_msg.child_frame_id = child_frame_id;
+
+  tf_msg.transform.translation.x = translation.x();
+  tf_msg.transform.translation.y = translation.y();
+  tf_msg.transform.translation.z = translation.z();
+
+  tf_msg.transform.rotation.x = rotation.x();
+  tf_msg.transform.rotation.y = rotation.y();
+  tf_msg.transform.rotation.z = rotation.z();
+  tf_msg.transform.rotation.w = rotation.w();
+
+  tf_broadcaster_->sendTransform(tf_msg);
+}
+
 void BaseController::publishTrajectoryMarker(const std::vector<Eigen::Vector3d> & path_points)
 {
   if (path_points.empty()) {
