@@ -117,7 +117,7 @@ void MujocoRosNode::publishFTSensorData(const rclcpp::Time & now)
     if (f_id >= 0 && t_id >= 0) {
       geometry_msgs::msg::WrenchStamped msg;
       msg.header.stamp = now;
-      msg.header.frame_id = "limb_" + std::to_string(limb_id + 1) + "_gripper_site";
+      msg.header.frame_id = "limb_" + std::to_string(limb_id + 1) + "_ft_sensor_site";
 
       int f_adr = m->sensor_adr[f_id];
       int t_adr = m->sensor_adr[t_id];
