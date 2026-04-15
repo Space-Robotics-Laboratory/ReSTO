@@ -14,6 +14,22 @@ ament_auto_add_library(base_controller
   src/base_controller.cpp
 )
 
+# PD Controller
+ament_auto_add_library(kj_control
+  src/kj/kj_control.cpp
+)
+target_link_libraries(kj_control
+  base_controller
+  trajectory_generator::trajectory_generator
+)
+rclcpp_components_register_nodes(kj_control
+  "mlivr_control::PDControl"
+)
+ament_auto_add_executable(kj_control_node
+  src/kj/kj_control_node.cpp
+)
+
+# Generalized Jacobian Controller
 ament_auto_add_library(gj_control
   src/gj_control.cpp
 )
@@ -28,6 +44,7 @@ ament_auto_add_executable(gj_control_node
   src/gj_control_node.cpp
 )
 
+# Whole-Body Controller (Trajectory Optimization)
 ament_auto_add_library(wb_control
   src/wb_control.cpp
   src/wbc_solver.cpp
