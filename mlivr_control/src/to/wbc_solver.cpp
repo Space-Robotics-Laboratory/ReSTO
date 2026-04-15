@@ -174,7 +174,7 @@ bool WbcSolver::computeTrajectory(
   callbacks.push_back(std::make_shared<crocoddyl::CallbackVerbose>());
   solver.setCallbacks(callbacks);
 
-  solver.solve(solver.get_xs(), solver.get_us(), 500, false);
+  solver.solve(solver.get_xs(), solver.get_us(), params_.solver.max_iter, false);
 
   optimized_xs_ = solver.get_xs();
   optimized_us_ = solver.get_us();
@@ -292,7 +292,8 @@ void WbcSolver::addEndEffectorTrackingCost(
 
     auto it = std::find(phase.support_limbs.begin(), phase.support_limbs.end(), frame_name);
     if (it != phase.support_limbs.end()) {
-      ee_tracking_weight *= 10.0;  // TODO: Parameterize
+      // ee_tracking_weight *= 2.0;  // TODO: Parameterize
+      ee_tracking_weight = params_.weights.sup_ee_tracking;
     }
 
     costs->addCost(
