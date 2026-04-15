@@ -1,5 +1,5 @@
 /**:
   ros__parameters:
     ee_frames:
-      - "limb_1_tool0"
-      - "limb_2_tool0"
+      - "limb_1_palm_link"
+      - "limb_2_palm_link"

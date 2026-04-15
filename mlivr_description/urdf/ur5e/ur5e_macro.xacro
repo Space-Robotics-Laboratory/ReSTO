@@ -212,27 +212,5 @@
       </collision>
     </link>
 
-    <joint name="${prefix}_ee_fixed_joint" type="fixed">
-      <parent link="${prefix}_wrist_3_link"/>
-      <child link="${prefix}_ee_link"/>
-      <origin rpy="0.0 0.0 1.57079632679" xyz="0.0 0.1 0.0"/>
-    </joint>
-
-    <link name="${prefix}_ee_link">
-      <collision>
-        <geometry>
-          <box size="0.01 0.01 0.01"/>
-        </geometry>
-        <origin rpy="0 0 0" xyz="-0.01 0 0"/>
-      </collision>
-    </link>
-
-    <link name="${prefix}_tool0"/>
-    <joint name="${prefix}_wrist_3_link-tool0_fixed_joint" type="fixed">
-      <origin rpy="-1.57079632679 0 0" xyz="0 0.1 0"/>
-      <parent link="${prefix}_wrist_3_link"/>
-      <child link="${prefix}_tool0"/>
-    </joint>
-
   </xacro:macro>
 </robot>

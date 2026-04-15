@@ -4,6 +4,7 @@
   <xacro:arg name="mesh_dir" default="package://mlivr_description/meshes"/>
 
   <xacro:include filename="./ur5e_macro.xacro"/>
+  <xacro:include filename="./mlivr_gripper.xacro"/>
 
   <mujoco>
     <compiler strippath="false"/>
@@ -34,8 +35,12 @@
     <origin xyz="0.0 0.1 0.0" rpy="0 ${radians(90)} ${radians(90)}"/>
   </xacro:ur5e>
 
+  <xacro:mlivr_gripper prefix="limb_1"/>
+
   <xacro:ur5e prefix="limb_2" parent="base_link">
     <origin xyz="0.0 -0.1 0.0" rpy="0 ${radians(90)} ${radians(270)}"/>
   </xacro:ur5e>
+
+  <xacro:mlivr_gripper prefix="limb_2"/>
 
 </robot>
