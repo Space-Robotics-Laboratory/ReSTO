@@ -10,10 +10,15 @@ find_package(ament_cmake_auto REQUIRED)
 set(COAL_DISABLE_HPP_FCL_WARNINGS ON)
 ament_auto_find_build_dependencies()
 
+ament_auto_add_library(base_controller
+  src/base_controller.cpp
+)
+
 ament_auto_add_library(gj_control
   src/gj_control.cpp
 )
 target_link_libraries(gj_control
+  base_controller
   trajectory_generator::trajectory_generator
 )
 rclcpp_components_register_nodes(gj_control
@@ -28,6 +33,7 @@ ament_auto_add_library(wb_control
   src/wbc_solver.cpp
 )
 target_link_libraries(wb_control
+  base_controller
   trajectory_generator::trajectory_generator
 )
 rclcpp_components_register_nodes(wb_control
