@@ -26,8 +26,8 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "mlivr_control/base_controller.hpp"
+#include "mlivr_control/to/wbc_solver.hpp"
 #include "mlivr_control/visibility_control.h"
-#include "mlivr_control/wbc_solver.hpp"
 
 namespace mlivr_control
 {
