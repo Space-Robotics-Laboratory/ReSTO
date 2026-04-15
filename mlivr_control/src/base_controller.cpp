@@ -143,6 +143,7 @@ void BaseController::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
 void BaseController::timerCallback()
 {
   if (!is_initialized_) {
+    this->publishWaitingState();
     return;
   }
 

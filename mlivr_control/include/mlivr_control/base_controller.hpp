@@ -49,6 +49,8 @@ protected:
 
   virtual std::vector<Eigen::Vector3d> getPlannedPath() = 0;
 
+  virtual void publishWaitingState() {}
+
   // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ee_path_marker_pub_;

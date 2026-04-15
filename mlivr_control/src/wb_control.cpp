@@ -14,35 +14,14 @@
 
 #include "mlivr_control/wb_control.hpp"
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
 namespace mlivr_control
 {
 
-WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", options)
+WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_control", options)
 {
-  // Publisher
-  cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_cmds", 10);
-  ee_path_marker_pub_ =
-    this->create_publisher<visualization_msgs::msg::Marker>("planned_trajectory", 10);
-
-  // Subscriber
-  joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
-    "/joint_states", 10, std::bind(&WBControl::jointStateCallback, this, std::placeholders::_1));
-  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "/odom", 10, std::bind(&WBControl::odomCallback, this, std::placeholders::_1));
-  trigger_sub_ = this->create_subscription<std_msgs::msg::Empty>(
-    "/start_wbc", 10, std::bind(&WBControl::triggerCallback, this, std::placeholders::_1));
-
-  // Timer
-  timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(10), std::bind(&WBControl::publishCommandStep, this));
-
-  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-
   // ROS 2 parameters
-  ee_frames_ = this->declare_parameter<std::vector<std::string>>("ee_frames");
   WbcSolverParams params;
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
@@ -56,30 +35,52 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
   params.ee_frames = ee_frames_;
 
-  std::string urdf_path =
-    ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
-  robot_core_ = std::make_unique<mlivr_model::RobotCore>(urdf_path);
   model_ptr_ = std::make_shared<pinocchio::Model>(robot_core_->getModel());
-
   wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
-
-  num_joints_ = model_ptr_->nv - 6;
-  current_joint_pos_.resize(num_joints_, 0.0);
-
-  current_base_pose_ = Eigen::VectorXd::Zero(7);
-  current_base_pose_(6) = 1.0;  // Quaternion
-  current_base_twist_ = Eigen::VectorXd::Zero(6);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
-void WBControl::publishCommandStep()
+bool WBControl::generateTrajectory()
+{
+  Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
+
+  {
+    pinocchio::Data data(*model_ptr_);
+    Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
+    q_all.head(7) = current_base_pose_;
+    for (int i = 0; i < num_joints_; ++i) {
+      q_all(7 + i) = current_joint_pos_[i];
+    }
+    pinocchio::forwardKinematics(*model_ptr_, data, q_all);
+    pinocchio::updateFramePlacements(*model_ptr_, data);
+
+    pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(ee_frames_[1]);
+    target_ee_pose_se3_ = data.oMf[swing_id];
+    target_ee_pose_se3_.translation() += offset;
+  }
+
+  bool success = wbc_solver_->computeTrajectory(
+    current_base_pose_, current_base_twist_, current_joint_pos_, ee_frames_[0], ee_frames_[1],
+    offset);
+
+  if (success) {
+    playback_idx_ = 0;
+    RCLCPP_INFO(this->get_logger(), "WBC Trajectory optimization completed.");
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "WBC Trajectory optimization failed.");
+  }
+
+  return success;
+}
+
+Eigen::VectorXd WBControl::computeCommandStep()
 {
   const auto & optimized_xs = wbc_solver_->getOptimizedXs();
-  const auto & optimized_us = wbc_solver_->getOptimizedUs();  // include only joint torque
+  const auto & optimized_us = wbc_solver_->getOptimizedUs();
 
-  if (!is_initialized_ || optimized_xs.empty() || playback_idx_ >= optimized_xs.size()) {
-    return;
+  if (optimized_xs.empty() || playback_idx_ >= optimized_xs.size()) {
+    return Eigen::VectorXd::Zero(1);
   }
 
   sensor_msgs::msg::JointState cmd_msg;
@@ -104,17 +105,49 @@ void WBControl::publishCommandStep()
 
   cmd_pub_->publish(cmd_msg);
 
-  publishPlannedRobotState(optimized_xs);
+  Eigen::VectorXd current_planned_q = optimized_xs[playback_idx_].head(model_ptr_->nq);
+  publishPlannedRobotState(current_planned_q);
   publishTargetTF(target_ee_pose_se3_);
 
   playback_idx_++;
+
+  return Eigen::VectorXd::Zero(1);
 }
 
-void WBControl::publishPlannedRobotState(const std::vector<Eigen::VectorXd> & optimized_xs)
+std::vector<Eigen::Vector3d> WBControl::getPlannedPath()
+{
+  std::vector<Eigen::Vector3d> path;
+  const auto & optimized_xs = wbc_solver_->getOptimizedXs();
+  if (optimized_xs.empty()) {
+    return path;
+  }
+
+  pinocchio::Data data(*model_ptr_);
+  pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(ee_frames_[1]);
+
+  for (const auto & x : optimized_xs) {
+    Eigen::VectorXd q = x.head(model_ptr_->nq);
+    pinocchio::forwardKinematics(*model_ptr_, data, q);
+    pinocchio::updateFramePlacements(*model_ptr_, data);
+    path.push_back(data.oMf[swing_id].translation());
+  }
+
+  return path;
+}
+
+void WBControl::publishWaitingState()
+{
+  Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
+  q_all.head(7) = current_base_pose_;
+  for (int i = 0; i < num_joints_; ++i) {
+    q_all(7 + i) = current_joint_pos_[i];
+  }
+  publishPlannedRobotState(q_all);
+}
+
+void WBControl::publishPlannedRobotState(const Eigen::VectorXd & q_all)
 {
   pinocchio::Data data(*model_ptr_);
-
-  Eigen::VectorXd q_all = optimized_xs[playback_idx_].head(model_ptr_->nq);
 
   pinocchio::forwardKinematics(*model_ptr_, data, q_all);
   pinocchio::updateFramePlacements(*model_ptr_, data);
@@ -153,48 +186,6 @@ void WBControl::publishPlannedRobotState(const std::vector<Eigen::VectorXd> & op
   }
 }
 
-void WBControl::publishTrajectoryMarker()
-{
-  const auto & xs = wbc_solver_->getOptimizedXs();
-  if (xs.empty()) return;
-
-  visualization_msgs::msg::Marker marker;
-  marker.header.frame_id = "world";
-  marker.header.stamp = this->now();
-  marker.ns = "wbc_planned_path";
-  marker.id = 0;
-  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-  marker.action = visualization_msgs::msg::Marker::ADD;
-  marker.pose.orientation.w = 1.0;
-  marker.scale.x = 0.005;  // Line width [mm]
-
-  marker.color.r = 0.0f;
-  marker.color.g = 1.0f;
-  marker.color.b = 1.0f;
-  marker.color.a = 1.0f;
-
-  pinocchio::Data data(*model_ptr_);
-  std::string swing_frame = ee_frames_[1];
-  pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(swing_frame);
-
-  for (const auto & x : xs) {
-    Eigen::VectorXd q = x.head(model_ptr_->nq);
-
-    pinocchio::forwardKinematics(*model_ptr_, data, q);
-    pinocchio::updateFramePlacements(*model_ptr_, data);
-
-    Eigen::Vector3d pos = data.oMf[swing_id].translation();
-
-    geometry_msgs::msg::Point p;
-    p.x = pos.x();
-    p.y = pos.y();
-    p.z = pos.z();
-    marker.points.push_back(p);
-  }
-
-  ee_path_marker_pub_->publish(marker);
-}
-
 void WBControl::publishTargetTF(const pinocchio::SE3 & target_pose)
 {
   geometry_msgs::msg::TransformStamped tf_msg;
@@ -202,12 +193,10 @@ void WBControl::publishTargetTF(const pinocchio::SE3 & target_pose)
   tf_msg.header.frame_id = "world";
   tf_msg.child_frame_id = "target/ee_pose";
 
-  // 位置のセット
   tf_msg.transform.translation.x = target_pose.translation().x();
   tf_msg.transform.translation.y = target_pose.translation().y();
   tf_msg.transform.translation.z = target_pose.translation().z();
 
-  // 回転（Matrix3d -> Quaterniond）のセット
   Eigen::Quaterniond q(target_pose.rotation());
   tf_msg.transform.rotation.x = q.x();
   tf_msg.transform.rotation.y = q.y();
@@ -215,95 +204,6 @@ void WBControl::publishTargetTF(const pinocchio::SE3 & target_pose)
   tf_msg.transform.rotation.w = q.w();
 
   tf_broadcaster_->sendTransform(tf_msg);
-}
-
-void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
-{
-  if (is_initialized_ || !is_odom_received_) {
-    return;
-  }
-
-  for (size_t i = 0; i < static_cast<size_t>(num_joints_) && i < msg->position.size(); ++i) {
-    current_joint_pos_[i] = msg->position[i];
-  }
-
-  if (!is_triggered_) {
-    std::vector<Eigen::VectorXd> dummy_xs;
-    Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
-
-    q_all.head(7) = current_base_pose_;
-    for (int i = 0; i < num_joints_; ++i) {
-      q_all(7 + i) = current_joint_pos_[i];
-    }
-
-    dummy_xs.push_back(q_all);
-
-    size_t temp_idx = playback_idx_;
-    playback_idx_ = 0;
-    publishPlannedRobotState(dummy_xs);
-    playback_idx_ = temp_idx;
-
-    return;
-  }
-
-  Eigen::Vector3d offset(0.0, -0.2, 0.01);  // in world frame
-
-  {
-    pinocchio::Data data(*model_ptr_);
-    Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
-    q_all.head(7) = current_base_pose_;
-    for (int i = 0; i < num_joints_; ++i) {
-      q_all(7 + i) = current_joint_pos_[i];
-    }
-
-    pinocchio::forwardKinematics(*model_ptr_, data, q_all);
-    pinocchio::updateFramePlacements(*model_ptr_, data);
-
-    pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(ee_frames_[1]);
-    pinocchio::SE3 start_swing_pose = data.oMf[swing_id];
-
-    target_ee_pose_se3_ = start_swing_pose;
-    target_ee_pose_se3_.translation() += offset;
-
-    publishTargetTF(target_ee_pose_se3_);
-  }
-
-  if (
-    wbc_solver_->computeTrajectory(
-      current_base_pose_, current_base_twist_, current_joint_pos_, ee_frames_[0], ee_frames_[1],
-      offset)) {
-    is_initialized_ = true;
-    publishTrajectoryMarker();
-  }
-}
-
-void WBControl::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-{
-  current_base_pose_(0) = msg->pose.pose.position.x;
-  current_base_pose_(1) = msg->pose.pose.position.y;
-  current_base_pose_(2) = msg->pose.pose.position.z;
-  current_base_pose_(3) = msg->pose.pose.orientation.x;
-  current_base_pose_(4) = msg->pose.pose.orientation.y;
-  current_base_pose_(5) = msg->pose.pose.orientation.z;
-  current_base_pose_(6) = msg->pose.pose.orientation.w;
-
-  current_base_twist_(0) = msg->twist.twist.linear.x;
-  current_base_twist_(1) = msg->twist.twist.linear.y;
-  current_base_twist_(2) = msg->twist.twist.linear.z;
-  current_base_twist_(3) = msg->twist.twist.angular.x;
-  current_base_twist_(4) = msg->twist.twist.angular.y;
-  current_base_twist_(5) = msg->twist.twist.angular.z;
-
-  is_odom_received_ = true;
-}
-
-void WBControl::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
-{
-  (void)msg;
-  if (!is_triggered_ && !is_initialized_) {
-    RCLCPP_INFO(this->get_logger(), "Optimization Triggered! Computing WBC trajectory...");
-    is_triggered_ = true;
-  }
 }
 
 }  // namespace mlivr_control
