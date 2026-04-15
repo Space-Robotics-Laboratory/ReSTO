@@ -46,14 +46,15 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : Node("wb_control", o
   WbcSolverParams params;
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
-  params.weights.swing_goal = this->declare_parameter<double>("weights.swing_goal");
-  params.weights.ee_vel_damping = this->declare_parameter<double>("weights.ee_vel_damping");
   params.weights.state_reg = this->declare_parameter<double>("weights.state_reg");
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");
   params.weights.control_limits = this->declare_parameter<double>("weights.control_limits");
+  params.weights.ee_tracking = this->declare_parameter<double>("weights.ee_tracking");
+  params.weights.ee_vel_damping = this->declare_parameter<double>("weights.ee_vel_damping");
+  params.weights.env_collision = this->declare_parameter<double>("weights.env_collision");
   params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
-  params.weights.ext_collision = this->declare_parameter<double>("weights.ext_collision");
+  params.ee_frames = ee_frames_;
 
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
@@ -95,8 +96,7 @@ void WBControl::publishCommandStep()
   }
 
   for (int i = 0; i < num_joints_; ++i) {
-    cmd_msg.name.push_back("joint_" + std::to_string(i));  // TODO: Temporary
-
+    cmd_msg.name.push_back(model_ptr_->names[i + 2]);
     cmd_msg.position.push_back(q_des(i));
     cmd_msg.velocity.push_back(v_des(i));
     cmd_msg.effort.push_back(tau_opt(i));
@@ -105,6 +105,7 @@ void WBControl::publishCommandStep()
   cmd_pub_->publish(cmd_msg);
 
   publishPlannedRobotState(optimized_xs);
+  publishTargetTF(target_ee_pose_se3_);
 
   playback_idx_++;
 }
@@ -194,6 +195,28 @@ void WBControl::publishTrajectoryMarker()
   ee_path_marker_pub_->publish(marker);
 }
 
+void WBControl::publishTargetTF(const pinocchio::SE3 & target_pose)
+{
+  geometry_msgs::msg::TransformStamped tf_msg;
+  tf_msg.header.stamp = this->now();
+  tf_msg.header.frame_id = "world";
+  tf_msg.child_frame_id = "target/ee_pose";
+
+  // 位置のセット
+  tf_msg.transform.translation.x = target_pose.translation().x();
+  tf_msg.transform.translation.y = target_pose.translation().y();
+  tf_msg.transform.translation.z = target_pose.translation().z();
+
+  // 回転（Matrix3d -> Quaterniond）のセット
+  Eigen::Quaterniond q(target_pose.rotation());
+  tf_msg.transform.rotation.x = q.x();
+  tf_msg.transform.rotation.y = q.y();
+  tf_msg.transform.rotation.z = q.z();
+  tf_msg.transform.rotation.w = q.w();
+
+  tf_broadcaster_->sendTransform(tf_msg);
+}
+
 void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   if (is_initialized_ || !is_odom_received_) {
@@ -223,7 +246,27 @@ void WBControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr
     return;
   }
 
-  Eigen::Vector3d offset(0.0, -0.2, 0.0);  // in world frame
+  Eigen::Vector3d offset(0.0, -0.2, 0.01);  // in world frame
+
+  {
+    pinocchio::Data data(*model_ptr_);
+    Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
+    q_all.head(7) = current_base_pose_;
+    for (int i = 0; i < num_joints_; ++i) {
+      q_all(7 + i) = current_joint_pos_[i];
+    }
+
+    pinocchio::forwardKinematics(*model_ptr_, data, q_all);
+    pinocchio::updateFramePlacements(*model_ptr_, data);
+
+    pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(ee_frames_[1]);
+    pinocchio::SE3 start_swing_pose = data.oMf[swing_id];
+
+    target_ee_pose_se3_ = start_swing_pose;
+    target_ee_pose_se3_.translation() += offset;
+
+    publishTargetTF(target_ee_pose_se3_);
+  }
 
   if (
     wbc_solver_->computeTrajectory(

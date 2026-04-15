@@ -17,8 +17,10 @@
   // Code Spell Checker setting
   "cSpell.ignoreWords": [
     "buildtool",
+    "Centroidal",
     "Crocoddyl",
     "Eigen",
+    "FDDP",
     "FONTSCALE",
     "GLFW",
     "GNUCXX",

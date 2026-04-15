@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /TF1/Frames1
       Splitter Ratio: 0.6612184047698975
     Tree Height: 1379
   - Class: rviz_common/Selection
@@ -535,6 +536,44 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /planned_trajectory
       Value: true
+    - Accept NaN Values: false
+      Alpha: 0.800000011920929
+      Arrow Width: 0.10000000149011612
+      Class: rviz_default_plugins/Wrench
+      Enabled: true
+      Force Arrow Scale: 1
+      Force Color: 204; 51; 51
+      History Length: 2
+      Name: Limb1Wrench
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mlivr_sim/limb_1/ee_ft_sensor
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Value: true
+    - Accept NaN Values: false
+      Alpha: 0.800000011920929
+      Arrow Width: 0.10000000149011612
+      Class: rviz_default_plugins/Wrench
+      Enabled: true
+      Force Arrow Scale: 1
+      Force Color: 204; 51; 51
+      History Length: 2
+      Name: Limb2Wrench
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mlivr_sim/limb_2/ee_ft_sensor
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -581,25 +620,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.8091425895690918
+      Distance: 1.6300510168075562
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.05658369138836861
-        Y: -0.023074936121702194
-        Z: 1.010299801826477
+        X: -0.07138502597808838
+        Y: 0.10293996334075928
+        Z: 0.7040321826934814
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.10039831697940826
+      Pitch: 0.0403982512652874
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.4053990840911865
+      Yaw: 3.1204051971435547
     Saved: ~
 Window Geometry:
   Displays:

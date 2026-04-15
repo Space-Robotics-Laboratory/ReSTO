@@ -94,6 +94,8 @@ void MujocoRosNode::publishJointStates(const rclcpp::Time & now)
       msg.name.push_back(jnt_name);
       msg.position.push_back(d->qpos[m->jnt_qposadr[i]]);  // HACK: No need 7 if use jnt_qposadr
       msg.velocity.push_back(d->qvel[m->jnt_dofadr[i]]);   // HACK: No need 6 if use jnt_dofadr
+      // msg.effort.push_back(d->qfrc_actuator[m->jnt_dofadr[i]]);
+      msg.effort.push_back(d->qfrc_applied[m->jnt_dofadr[i]]);
     }
   }
 

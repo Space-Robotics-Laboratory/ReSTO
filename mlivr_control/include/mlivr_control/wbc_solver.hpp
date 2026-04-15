@@ -37,38 +37,40 @@ struct SolverParams
 
 struct WeightParams
 {
-  double swing_goal = 1e4;
-  double ee_vel_damping = 1e4;
-  double state_reg = 1e-1;
-  double control_reg = 1e-4;
+  double state_reg = 0.0;
+  double control_reg = 0.0;
 
-  double state_limits = 1e3;
-  double control_limits = 1e3;
+  double state_limits = 0.0;
+  double control_limits = 0.0;
+
+  double ee_tracking = 0.0;
+  double ee_vel_damping = 0.0;
+
+  double env_collision = 0.0;
 
   double momentum_reg = 0.0;
-
-  double ext_collision = 0.0;
 };
 
 struct WbcSolverParams
 {
   SolverParams solver;
   WeightParams weights;
+
+  std::vector<std::string> ee_frames;
 };
 
 struct TaskPhase
 {
-  // 把持(Weld)するフレームとその姿勢
-  std::map<std::string, pinocchio::SE3> active_contacts;
+  // Frame name and target ee pose list for target-tracking
+  std::map<std::string, pinocchio::SE3> ee_tracking_targets;
 
-  // 目標追従させるフレームとその目標姿勢
-  std::map<std::string, pinocchio::SE3> swing_targets;
-
-  // 衝突判定を行いたいフレーム名のリスト
+  // Frame name list for environment collision
   std::vector<std::string> collision_frames;
 
-  // Selection vector
+  // Selection vector of support limbs
   std::vector<std::string> support_limbs;
+
+  std::map<std::string, double> ee_z_lower_bounds;
 };
 
 class WbcSolver
@@ -80,7 +82,7 @@ public:
   bool computeTrajectory(
     const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
     const std::vector<double> & current_joint_pos, const std::string & fixed_frame,
-    const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset);
+    const std::string & swing_frame, const Eigen::Vector3d & world_translation_offset);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
@@ -91,8 +93,20 @@ private:
   std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
     const Eigen::VectorXd & x0, const TaskPhase & phase);
 
-  std::shared_ptr<crocoddyl::ActionModelAbstract> createImpulseModel(
-    const Eigen::VectorXd & x0, const std::string & impact_frame);
+  void addStateAndControlRegularizationCosts(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const Eigen::VectorXd & x0);
+
+  void addStateAndControlLimitsCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+
+  void addEndEffectorTrackingCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase);
+
+  void addEndEffectorVelocityDampingCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+
+  void addEnvironmentCollisionCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase);
+
+  void addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::shared_ptr<pinocchio::Data> data_ptr_;

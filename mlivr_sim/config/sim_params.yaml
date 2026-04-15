@@ -3,5 +3,5 @@ mlivr_sim:
     extract_keyframe: false # true/false
 
     gains:
-        kp: 80.0
-        kd: 15.0
+        kp: 20.0 # GJ: 100, TO: 20
+        kd: 0.5 # GJ: 20, TO: 0.5

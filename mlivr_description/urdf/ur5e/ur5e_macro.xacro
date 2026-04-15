@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <xacro:property name="joint_damping" value="0.5" />
+  <xacro:property name="joint_damping" value="0.1" />
 
   <xacro:macro name="ur5e" params="prefix parent *origin">
 

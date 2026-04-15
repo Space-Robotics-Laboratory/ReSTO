@@ -36,17 +36,17 @@ MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
     // Pose Extraction
     d_->qpos[8] = -1.57;
     d_->qpos[14] = -1.57;
-    for (int i = 0; i < 50000; i++) {
+    for (int i = 0; i < 1000000; i++) {
       mj_step(m_, d_);
 
       // Overwrite the base pose at every step forcefully
-      d_->qpos[0] = 0.0;  // x
-      d_->qpos[1] = 0.1;  // y
-      d_->qpos[2] = 1.0;  // z
-      d_->qpos[3] = 1.0;  // qw
-      d_->qpos[4] = 0.0;  // qx
-      d_->qpos[5] = 0.0;  // qy
-      d_->qpos[6] = 0.0;  // qz
+      d_->qpos[0] = 0.02;  // x
+      d_->qpos[1] = 0.1;   // y
+      d_->qpos[2] = 1.0;   // z
+      d_->qpos[3] = 1.0;   // qw
+      d_->qpos[4] = 0.0;   // qx
+      d_->qpos[5] = 0.0;   // qy
+      d_->qpos[6] = 0.0;   // qz
 
       // Reduce the overall system speed by 90%
       for (int j = 0; j < m_->nv; j++) {

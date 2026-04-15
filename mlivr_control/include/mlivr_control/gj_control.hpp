@@ -15,6 +15,8 @@
 #ifndef MLIVR_CONTROL__GJ_CONTROL_HPP_
 #define MLIVR_CONTROL__GJ_CONTROL_HPP_
 
+#include <tf2_ros/transform_broadcaster.h>
+
 #include <Eigen/Dense>
 #include <memory>
 #include <mutex>
@@ -53,6 +55,8 @@ private:
 
   void publishTrajectoryMarker();
 
+  void publishTargetTF(double t);
+
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
@@ -72,6 +76,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
   // Timer
   rclcpp::TimerBase::SharedPtr timer_;
+
+  std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;
   std::unique_ptr<mlivr_model::Kinematics> kinematics_;

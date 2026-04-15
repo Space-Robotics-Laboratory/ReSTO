@@ -55,6 +55,8 @@ private:
 
   void publishTrajectoryMarker();
 
+  void publishTargetTF(const pinocchio::SE3 & target_pose);
+
   void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
@@ -93,6 +95,8 @@ private:
   size_t playback_idx_ = 0;
 
   bool is_triggered_ = false;
+
+  pinocchio::SE3 target_ee_pose_se3_;
 };
 
 }  // namespace mlivr_control

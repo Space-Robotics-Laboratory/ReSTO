@@ -56,6 +56,7 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : Node("gj_control", o
   current_base_pose_ = Eigen::VectorXd::Zero(7);
   current_base_pose_(6) = 1.0;
 
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   tf_transformer_ = std::make_unique<coordinate_transformer::CoordinateTransformer>(this);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
@@ -67,7 +68,7 @@ void GJControl::publishCommandStep(const std::vector<double> & q)
   cmd_msg.header.stamp = this->now();
 
   for (int i = 0; i < num_joints_; ++i) {
-    cmd_msg.name.push_back("joint_" + std::to_string(i + 1));  // TODO: Temporary
+    cmd_msg.name.push_back(robot_core_->getModel().names[i + 2]);
     cmd_msg.position.push_back(q[i]);
     cmd_msg.velocity.push_back(0.0);
     cmd_msg.effort.push_back(0.0);
@@ -95,21 +96,10 @@ void GJControl::publishTrajectoryMarker()
   marker.color.b = 1.0f;
   marker.color.a = 1.0f;
 
-  // Compute ee frame in world frame
-  int nq = robot_core_->getModel().nq;
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
-  q.head(7) = current_base_pose_;
-  for (int i = 0; i < num_joints_; ++i) q(7 + i) = current_q_[i];
-
-  pinocchio::SE3 pose_L = kinematics_->solveFK(q, ee_frames_[0]);
-
-  // Convert spline trajectory in world frame
   double dt = 0.05;
   for (double t = 0; t <= duration_; t += dt) {
-    Eigen::Vector3d local_pos = pos_spline_->getPosition(t);
-
-    // HACK: Convert local frame to world frame in a single step
-    Eigen::Vector3d world_pos = pose_L.act(local_pos);
+    // ★ 変更: スプラインから取得できる位置が既にワールド座標
+    Eigen::Vector3d world_pos = pos_spline_->getPosition(t);
 
     geometry_msgs::msg::Point p;
     p.x = world_pos.x();
@@ -120,6 +110,27 @@ void GJControl::publishTrajectoryMarker()
 
   ee_path_marker_pub_->publish(marker);
   RCLCPP_INFO(this->get_logger(), "Published GJ spline trajectory marker to RViz2.");
+}
+
+void GJControl::publishTargetTF(double t)
+{
+  Eigen::Vector3d p_target = pos_spline_->getPosition(t);
+  Eigen::Quaterniond q_target = ori_spline_->getOrientation(t);
+
+  geometry_msgs::msg::TransformStamped tf_msg;
+  tf_msg.header.stamp = this->now();
+  tf_msg.header.frame_id = "world";
+  tf_msg.child_frame_id = "planned/" + ee_frames_[1];  // wb_controlの命名規則に合わせる
+
+  tf_msg.transform.translation.x = p_target.x();
+  tf_msg.transform.translation.y = p_target.y();
+  tf_msg.transform.translation.z = p_target.z();
+  tf_msg.transform.rotation.x = q_target.x();
+  tf_msg.transform.rotation.y = q_target.y();
+  tf_msg.transform.rotation.z = q_target.z();
+  tf_msg.transform.rotation.w = q_target.w();
+
+  tf_broadcaster_->sendTransform(tf_msg);
 }
 
 void GJControl::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
@@ -216,29 +227,23 @@ void GJControl::controlLoop()
 
   if (is_trajectory_active_) {
     double t = this->now().seconds() - trajectory_start_time_;
-    // double duration = 10.0;  // ★ startTrajectory() と時間を合わせる！
+
+    double t_eval = (t > duration_) ? duration_ : t;  // 終了後は最終目標値をキープ
+    publishTargetTF(t_eval);
 
     if (t > duration_) {
-      // ★ 軌道終了後は確実に速度をゼロにする
       v_target_local_R = Eigen::VectorXd::Zero(6);
     } else {
-      // 1. スプラインから現在時刻の【目標速度】を取得 (すべて limb_1 座標系)
-      Eigen::VectorXd v_spline = Eigen::VectorXd::Zero(6);
-      v_spline.head<3>() = pos_spline_->getVelocity(t);
-      v_spline.tail<3>() = ori_spline_->getAngularVelocity(t);
+      Eigen::VectorXd v_spline_world = Eigen::VectorXd::Zero(6);
+      v_spline_world.head<3>() = pos_spline_->getVelocity(t);
+      v_spline_world.tail<3>() = ori_spline_->getAngularVelocity(t);
 
-      // PinocchioのMotion型（空間速度）に変換
-      pinocchio::Motion v_ff_L1(v_spline);
+      pinocchio::Motion v_ff_world(v_spline_world);
 
-      // 2. 現在の手先 Pose (limb_1 から見た limb_2)
-      // ※pose_L, pose_R は上で計算済みの solveFK の結果
-      pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
+      // 2. 【空間速度の座標変換】 World座標系の速度を、limb_2 ローカル座標系に直接変換
+      // pose_R はFKで計算済みの World -> limb_2 の姿勢
+      pinocchio::Motion v_ff_local_R = pose_R.actInv(v_ff_world);
 
-      // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に直接変換
-      // actInv() は回転行列だけでなく、2点間の並進オフセットによる遠心力・コリオリ効果(ω x r)も正しく処理します
-      pinocchio::Motion v_ff_local_R = L1_to_R.actInv(v_ff_L1);
-
-      // フィードバックを使わず、純粋なスプライン速度のみを指令値とする
       v_target_local_R = v_ff_local_R.toVector();
     }
   }
@@ -247,46 +252,6 @@ void GJControl::controlLoop()
   Eigen::VectorXd v_stacked = Eigen::VectorXd::Zero(12);
   v_stacked.head<6>() = v_target_local_L;
   v_stacked.tail<6>() = v_target_local_R;
-
-  // ======================================
-
-  // // --- 目標速度と位置フィードバックの計算 ---
-  // Eigen::VectorXd v_target_local_L = Eigen::VectorXd::Zero(6);  // 左腕(Weld側)は動かさない
-  // Eigen::VectorXd v_target_local_R = Eigen::VectorXd::Zero(6);
-
-  // if (is_trajectory_active_) {
-  //   double t = this->now().seconds() - trajectory_start_time_;
-  //   if (t > 5.0) t = 5.0;  // 5秒で停止
-
-  //   // 1. スプラインから現在時刻の【目標位置・姿勢・速度】を取得 (すべて limb_1 座標系)
-  //   Eigen::Vector3d p_target = pos_spline_->getPosition(t);
-  //   Eigen::Quaterniond q_target = ori_spline_->getOrientation(t);
-  //   pinocchio::SE3 SE3_target(q_target.toRotationMatrix(), p_target);
-
-  //   // limb_1 座標系における目標空間速度 (Motion)
-  //   pinocchio::Motion v_ff_L1(pos_spline_->getVelocity(t), ori_spline_->getAngularVelocity(t));
-
-  //   // 2. 現在の手先 Pose (limb_1 座標系から見た limb_2)
-  //   pinocchio::SE3 L1_to_R = pose_L.actInv(pose_R);
-
-  //   // 3. 【空間速度の座標変換】 limb_1 座標系の速度を、limb_2 ローカル座標系に変換
-  //   // L1_to_R.actInv() は、空間速度ベクトルを正確に別のフレームに投影します
-  //   pinocchio::Motion v_ff_local = L1_to_R.actInv(v_ff_L1);
-
-  //   // 4. 【フィードバック計算】 limb_2 ローカル座標系の誤差空間速度
-  //   pinocchio::Motion error_motion = pinocchio::log6(L1_to_R.actInv(SE3_target));
-
-  //   // 5. 最終的な指令速度 = フィードフォワード + フィードバック (Kp)
-  //   double Kp = 10.0;  // ゲインを高めに設定して追従性を上げる
-  //   v_target_local_R = v_ff_local.toVector() + Kp * error_motion.toVector();
-  // }
-
-  // // --- 結合 ---
-  // Eigen::VectorXd v_stacked = Eigen::VectorXd::Zero(12);
-  // v_stacked.head<6>() = v_target_local_L;
-  // v_stacked.tail<6>() = v_target_local_R;
-
-  // =======================================
 
   // --- IK計算と角度更新 ---
   double lambda = 0.0;
@@ -305,51 +270,32 @@ void GJControl::controlLoop()
 
 bool GJControl::startTrajectory()
 {
-  // // --- 1. 目標把持点の取得 (TF使用) ---
-  // std::string target_site = "seattrack_1_site_1";  // 右手が向かう目標
-  // std::string base_frame = "limb_1_gripper_site";  // 左手(固定端)を基準座標とする
-
-  // // tf_transformer_を使って、左手基準の目標位置を取得
-  // auto tf_msg_opt = tf_transformer_->getTransformMsg(target_site, base_frame);
-  // if (!tf_msg_opt) {
-  //   RCLCPP_WARN_THROTTLE(
-  //     this->get_logger(), *this->get_clock(), 1000, "Waiting for TF: %s -> %s", target_site.c_str(),
-  //     base_frame.c_str());
-  //   return false;
-  // }
-  // auto tf_msg = tf_msg_opt.value();
-  // Eigen::Vector3d target_pos(
-  //   tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z);
-  // Eigen::Quaterniond target_quat(
-  //   tf_msg.transform.rotation.w, tf_msg.transform.rotation.x, tf_msg.transform.rotation.y,
-  //   tf_msg.transform.rotation.z);
-
-  // --- 2. 現在の手先位置の取得 (FK使用) ---
   int nq = robot_core_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) q(7 + i) = current_q_[i];
 
-  pinocchio::SE3 pose_L = kinematics_->solveFK(q, ee_frames_[0]);
+  // pose_L は軌道生成では使わなくなるため削除可能
   pinocchio::SE3 pose_R = kinematics_->solveFK(q, ee_frames_[1]);
 
-  // 左手座標系から見た右手(limb_2)の現在のPose
-  pinocchio::SE3 current_pose_R_in_L = pose_L.actInv(pose_R);
-  Eigen::Vector3d start_pos = current_pose_R_in_L.translation();
-  Eigen::Quaterniond start_quat(current_pose_R_in_L.rotation());
+  // ★ 変更: World座標系における現在の右手Poseを基準にする
+  Eigen::Vector3d start_pos = pose_R.translation();
+  Eigen::Quaterniond start_quat(pose_R.rotation());
 
-  auto displacement = Eigen::Vector3d(-0.2, 0.0, -0.0);
+  // ★ 変更: World座標系でのオフセット（wb_control と同じに合わせる）
+  auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
 
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = start_quat;
 
-  Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, -0.05);
+  // ★ 変更: WorldのZ軸(上方向)への持ち上げ高さ
+  Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
   Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
   Eigen::Quaterniond mid_quat = start_quat;
 
   // --- 3. 自作ライブラリによる軌道制約の作成 ---
   // double duration = 10.0;
-  duration_ = 20.0;
+  duration_ = 10.0;
 
   // 位置の制約 (開始0秒で速度0、終了5秒で速度0)
   trajectory_generator::VectorStateConstraint start_p_c{
