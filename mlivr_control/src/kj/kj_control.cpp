@@ -150,10 +150,11 @@ Eigen::VectorXd KJControl::computeCommandStep()
   v_stacked.tail<6>() = v_target_local_R;
 
   // 3. 疑似逆行列 (Damped Least Squares) による関節速度の計算
-  double lambda = 0.01;  // Damping term for singularity avoidance
+  double lambda = 0.0;  // Damping term for singularity avoidance
   Eigen::MatrixXd A =
     J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
   Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
+  // Eigen::VectorXd q_dot_cmd_all = J_stacked.inverse() * v_stacked;
 
   double dt = 0.01;
   sensor_msgs::msg::JointState cmd_msg;
