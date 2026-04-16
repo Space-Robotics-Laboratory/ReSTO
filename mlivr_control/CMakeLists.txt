@@ -44,6 +44,21 @@ ament_auto_add_executable(gj_control_node
   src/gj/gj_control_node.cpp
 )
 
+# Generalized Jacobian Controller
+ament_auto_add_library(ramp_control
+  src/ramp/ramp_control.cpp
+)
+target_link_libraries(ramp_control
+  base_controller
+  trajectory_generator::trajectory_generator
+)
+rclcpp_components_register_nodes(ramp_control
+  "mlivr_control::RAMPControl"
+)
+ament_auto_add_executable(ramp_control_node
+  src/ramp/ramp_control_node.cpp
+)
+
 # Whole-Body Controller (Trajectory Optimization)
 ament_auto_add_library(wb_control
   src/to/wb_control.cpp
