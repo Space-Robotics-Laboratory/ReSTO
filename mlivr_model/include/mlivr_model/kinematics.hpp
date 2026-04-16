@@ -33,9 +33,25 @@ public:
 
   virtual ~Kinematics() = default;
 
+  Eigen::MatrixXd computeJacobian(const Eigen::VectorXd & q, const std::string & frame_name);
+
   pinocchio::SE3 solveFK(const Eigen::VectorXd & q, const std::string & frame_name);
 
-  Eigen::MatrixXd computeJacobian(const Eigen::VectorXd & q, const std::string & frame_name);
+  /**
+   * @brief 指定した関節のみを動かして、目標フレームを目標姿勢に一致させる数値的逆運動学(IK)
+   * @param q 現在の一般化座標（計算結果で上書きされます）
+   * @param frame_name 目標とするエンドエフェクタ等のフレーム名
+   * @param joint_names IKで動かすことを許可する関節の名前リスト
+   * @param desired_pose 目標となるSE3姿勢
+   * @param tolerance 収束判定の許容誤差
+   * @param max_iterations 最大ループ回数
+   * @param damping_factor DLSのダンピング係数（特異点付近の安定化用）
+   * @return bool 収束した場合は true
+   */
+  bool solveNumericalIK(
+    Eigen::VectorXd & q, const std::string & frame_name,
+    const std::vector<std::string> & joint_names, const pinocchio::SE3 & desired_pose,
+    double tolerance = 1e-4, int max_iterations = 100, double damping_factor = 1e-2);
 
 private:
   const pinocchio::Model & model_;
