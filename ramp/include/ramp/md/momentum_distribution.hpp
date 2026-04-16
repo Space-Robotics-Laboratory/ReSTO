@@ -25,6 +25,12 @@ namespace ramp
 namespace md
 {
 
+struct VelocityCommand
+{
+  Eigen::VectorXd base_velocity;
+  Eigen::VectorXd support_limb_joint_velocities;
+};
+
 class MomentumDistribution
 {
 public:
@@ -33,9 +39,9 @@ public:
   virtual ~MomentumDistribution() = default;
 
   RAMP_PUBLIC
-  Eigen::VectorXd computeBaseVelocity(
+  VelocityCommand computeVelocities(
     const Eigen::MatrixXd & H_b, const Eigen::MatrixXd & H_bm_sup, const Eigen::MatrixXd & J_b_sup,
-    const Eigen::MatrixXd & J_m_sup, const Eigen::VectorXd & L_swing, double alpha,
+    const Eigen::MatrixXd & J_m_sup, const Eigen::VectorXd & L_swing, double alpha = 1.0,
     double max_lambda = 0.1, double epsilon = 0.05);
 
 private:
