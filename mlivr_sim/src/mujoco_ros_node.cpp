@@ -82,7 +82,6 @@ void MujocoRosNode::publishJointStates(const rclcpp::Time & now)
 {
   mjModel * m = engine_->getModel();
   mjData * d = engine_->getData();
-  int num_joints = m->nv - 6;
 
   sensor_msgs::msg::JointState msg;
   msg.header.stamp = now;
