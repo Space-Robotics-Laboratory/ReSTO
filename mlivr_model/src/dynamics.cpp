@@ -58,4 +58,17 @@ Eigen::MatrixXd Dynamics::computeGeneralizedJacobian(
   return J_g;
 }
 
+void Dynamics::computeInertiaMatrices(
+  const Eigen::VectorXd & q, Eigen::MatrixXd & H_b, Eigen::MatrixXd & H_bm)
+{
+  pinocchio::crba(model_, data_, q);
+  data_.M.triangularView<Eigen::StrictlyLower>() =
+    data_.M.transpose().triangularView<Eigen::StrictlyLower>();
+
+  const int njoints = model_.nv - 6;
+
+  H_b = data_.M.block(0, 0, 6, 6);
+  H_bm = data_.M.block(0, 6, 6, njoints);
+}
+
 }  // namespace mlivr_model

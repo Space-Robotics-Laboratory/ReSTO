@@ -35,6 +35,9 @@ public:
   Eigen::MatrixXd computeGeneralizedJacobian(
     const Eigen::VectorXd & q, const std::string & frame_name);
 
+  void computeInertiaMatrices(
+    const Eigen::VectorXd & q, Eigen::MatrixXd & H_b, Eigen::MatrixXd & H_bm);
+
 private:
   const pinocchio::Model & model_;
   pinocchio::Data data_;
