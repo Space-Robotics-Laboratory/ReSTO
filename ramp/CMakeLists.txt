@@ -8,14 +8,19 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(Eigen3 REQUIRED)
+# find_package(NLopt REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(NLOPT REQUIRED nlopt)
 
 # add library
 add_library(${PROJECT_NAME} SHARED
+  src/lrst/low_reaction_swing_trajectory.cpp
   src/md/momentum_distribution.cpp
 )
 
 # target include directories
 target_include_directories(${PROJECT_NAME} PUBLIC
+  ${NLOPT_INCLUDE_DIRS}
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -23,6 +28,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # link libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC
   Eigen3::Eigen
+  ${NLOPT_LIBRARIES}
 )
 
 # export dependencies
