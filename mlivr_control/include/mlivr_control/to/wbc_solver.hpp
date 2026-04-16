@@ -33,6 +33,7 @@ struct SolverParams
 {
   int horizon_steps = 100;
   double dt = 0.01;
+  int max_iter = 500;
 };
 
 struct WeightParams
@@ -44,6 +45,7 @@ struct WeightParams
   double control_limits = 0.0;
 
   double ee_tracking = 0.0;
+  double sup_ee_tracking = 0.0;
   double ee_vel_damping = 0.0;
 
   double env_collision = 0.0;

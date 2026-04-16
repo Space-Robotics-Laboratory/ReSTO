@@ -4,4 +4,4 @@ mlivr_sim:
 
     gains:
         kp: 20.0 # GJ: 100, TO: 20
-        kd: 0.5 # GJ: 20, TO: 0.5
+        kd: 0.5 # GJ: 15, TO: 0.5

@@ -34,8 +34,19 @@ MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
 
   if (extract_keyframe) {
     // Pose Extraction
-    d_->qpos[8] = -1.57;
-    d_->qpos[14] = -1.57;
+    // d_->qpos[2] = 1.5;
+    // d_->qpos[7] = -0.239565;
+    d_->qpos[8] = -0.861929;
+    d_->qpos[9] = 1.65969;
+    d_->qpos[10] = -0.797827;
+    d_->qpos[11] = 1.33203;
+    d_->qpos[12] = 1.57081;
+    // d_->qpos[13] = -0.23803;
+    d_->qpos[14] = -0.949546;
+    d_->qpos[15] = 1.63655;
+    d_->qpos[16] = -0.686937;
+    d_->qpos[17] = 1.33196;
+    d_->qpos[18] = -1.57082;
     for (int i = 0; i < 1000000; i++) {
       mj_step(m_, d_);
 

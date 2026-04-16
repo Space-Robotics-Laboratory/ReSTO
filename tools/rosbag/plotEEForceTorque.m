@@ -17,9 +17,9 @@ clc; clear; close all;
 %% User settings
 
 % NOTE: Put csv files generated from rosbag under LIMBERO/tools/rosbag/ directory.
-csv_file = "csv" + filesep + "rosbag2_2026_04_14-19_43_26" + ".csv";
+csv_file = "csv" + filesep + "rosbag2_2026_04_16-13_00_36" + ".csv";
 
-save_fig = true;  % true/false
+save_fig = false;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
@@ -93,20 +93,25 @@ end
 %% Plot Swing EE Error
 if (plot_ee_error)
 
-  target_prefix = "x_tf_world_planned_limb_2_tool0_translation_";
+  target_prefix = "x_tf_world_target_limb_2_palm_link_translation_";
+  planned_prefix = "x_tf_world_planned_limb_2_palm_link_translation_";
   actual_prefix = "x_tf_world_limb_2_gripper_site_translation_";
 
   target_raw(:, 1) = data.(matlab.lang.makeValidName(target_prefix + "x"));
   target_raw(:, 2) = data.(matlab.lang.makeValidName(target_prefix + "y"));
   target_raw(:, 3) = data.(matlab.lang.makeValidName(target_prefix + "z"));
 
+  planned_raw(:, 1) = data.(matlab.lang.makeValidName(planned_prefix + "x"));
+  planned_raw(:, 2) = data.(matlab.lang.makeValidName(planned_prefix + "y"));
+  planned_raw(:, 3) = data.(matlab.lang.makeValidName(planned_prefix + "z"));
+
   actual_raw(:, 1) = data.(matlab.lang.makeValidName(actual_prefix + "x"));
   actual_raw(:, 2) = data.(matlab.lang.makeValidName(actual_prefix + "y"));
   actual_raw(:, 3) = data.(matlab.lang.makeValidName(actual_prefix + "z"));
 
-  valid_idx_target = ~isnan(target_raw(:, 1));
-  time_target_rel = time_vec(valid_idx_target);
-  target_pos = target_raw(valid_idx_target, :);
+  valid_idx_planned = ~isnan(planned_raw(:, 1));
+  time_planned_rel = time_vec(valid_idx_planned);
+  planned_pos = planned_raw(valid_idx_planned, :);
 
   valid_idx_actual = ~isnan(actual_raw(:, 1));
   time_actual_rel = time_vec(valid_idx_actual);
@@ -116,22 +121,19 @@ if (plot_ee_error)
   time_plot = time_actual_rel(mask_actual);
   actual_pos_synced = actual_pos(mask_actual, :);
 
-  % ターゲット側も同様に、動き出し以降を同期
-  target_pos_interp = interp1(time_target_rel, target_pos, time_plot, 'linear', 'extrap');
+  planned_pos_interp = interp1(time_planned_rel, planned_pos, time_plot, 'linear', 'extrap');
 
-  % 4. 誤差とRMSEの計算
-  error_vec = actual_pos_synced - target_pos_interp;
+  error_vec = actual_pos_synced - planned_pos_interp;
   error_norm = vecnorm(error_vec, 2, 2);
 
   % RMSE for whole trajectory
   rmse_val = sqrt(mean(error_norm.^2));
   fprintf('Trajectory RMSE: %.4f [m] (%.2f [mm])\n', rmse_val, rmse_val * 1000);
 
-  % 軌道全体の最大誤差（Max Error）
+  % Max Error for whole trajectory
   max_error = max(error_norm);
   fprintf('Max Absolute Error: %.4f [m] (%.2f [mm])\n', max_error, max_error * 1000);
 
-  % 誤差推移のプロット (m -> mm に変換して見やすくする)
   y_label = "Limb 2 End-Effector Error [mm]";
   legends = [""];
   plotGraph(time_plot, error_norm * 1000, y_label, legends);
@@ -139,6 +141,13 @@ if (plot_ee_error)
   if (save_fig)
     saveas(gcf, "limb_2_tracking_error.fig", "fig");
   end
+
+  valid_idx_target = find(~isnan(target_raw(:, 1)), 1);
+  target_pos = target_raw(valid_idx_target, :);
+
+  error_norm = norm(target_pos - actual_pos_synced(end, :));
+  rmse_val = sqrt(mean(error_norm.^2));
+  fprintf('Target RMSE: %.4f [m] (%.2f [mm])\n', rmse_val, rmse_val * 1000);
 
 end
 

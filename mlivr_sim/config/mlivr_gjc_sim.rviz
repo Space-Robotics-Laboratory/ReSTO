@@ -75,25 +75,25 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        limb_1_ee_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         limb_1_forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        limb_1_gripper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        limb_1_palm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         limb_1_shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        limb_1_tool0:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         limb_1_upper_arm_link:
           Alpha: 1
           Show Axes: false
@@ -119,25 +119,25 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        limb_2_ee_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         limb_2_forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        limb_2_gripper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        limb_2_palm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         limb_2_shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        limb_2_tool0:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         limb_2_upper_arm_link:
           Alpha: 1
           Show Axes: false
@@ -187,16 +187,18 @@ Visualization Manager:
           Value: false
         limb_1_base_link:
           Value: false
-        limb_1_ee_link:
-          Value: false
         limb_1_forearm_link:
+          Value: false
+        limb_1_ft_sensor_site:
+          Value: false
+        limb_1_gripper_link:
           Value: false
         limb_1_gripper_site:
           Value: false
+        limb_1_palm_link:
+          Value: true
         limb_1_shoulder_link:
           Value: false
-        limb_1_tool0:
-          Value: true
         limb_1_upper_arm_link:
           Value: false
         limb_1_wrist_1_link:
@@ -207,16 +209,18 @@ Visualization Manager:
           Value: false
         limb_2_base_link:
           Value: false
-        limb_2_ee_link:
-          Value: false
         limb_2_forearm_link:
+          Value: false
+        limb_2_ft_sensor_site:
+          Value: false
+        limb_2_gripper_link:
           Value: false
         limb_2_gripper_site:
           Value: false
+        limb_2_palm_link:
+          Value: true
         limb_2_shoulder_link:
           Value: false
-        limb_2_tool0:
-          Value: true
         limb_2_upper_arm_link:
           Value: false
         limb_2_wrist_1_link:
@@ -242,10 +246,9 @@ Visualization Manager:
                     limb_1_wrist_1_link:
                       limb_1_wrist_2_link:
                         limb_1_wrist_3_link:
-                          limb_1_ee_link:
-                            {}
-                          limb_1_tool0:
-                            {}
+                          limb_1_gripper_link:
+                            limb_1_palm_link:
+                              {}
             limb_2_base_link:
               limb_2_shoulder_link:
                 limb_2_upper_arm_link:
@@ -253,10 +256,9 @@ Visualization Manager:
                     limb_2_wrist_1_link:
                       limb_2_wrist_2_link:
                         limb_2_wrist_3_link:
-                          limb_2_ee_link:
-                            {}
-                          limb_2_tool0:
-                            {}
+                          limb_2_gripper_link:
+                            limb_2_palm_link:
+                              {}
           handrail_1_site_1:
             {}
           handrail_1_site_2:
@@ -269,7 +271,11 @@ Visualization Manager:
             {}
           handrail_2_site_1:
             {}
+          limb_1_ft_sensor_site:
+            {}
           limb_1_gripper_site:
+            {}
+          limb_2_ft_sensor_site:
             {}
           limb_2_gripper_site:
             {}
@@ -372,7 +378,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.5920454263687134
+      Distance: 1.6583529710769653
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

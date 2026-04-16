@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/wb_control.hpp"
+#include "mlivr_control/to/wb_control.hpp"
 
 int main(int argc, char * argv[])
 {

@@ -4,17 +4,19 @@ mlivr_wbc:
     solver:
       horizon_steps: 1000
       dt: 0.01
+      max_iter: 1000
 
     weights:
-      state_reg: 1.5e0
-      control_reg: 1.5e0
+      state_reg: 8e-3
+      control_reg: 1e-4
 
-      state_limits: 0.0
-      control_limits: 0.0
+      state_limits: 1e-4
+      control_limits: 1e-4
 
-      ee_tracking: 1e4
-      ee_vel_damping: 1e2
+      ee_tracking: 5e1
+      sup_ee_tracking: 1e2
+      ee_vel_damping: 1e0
 
-      env_collision: 5e3
+      env_collision: 1e1
 
       momentum_reg: 0.0

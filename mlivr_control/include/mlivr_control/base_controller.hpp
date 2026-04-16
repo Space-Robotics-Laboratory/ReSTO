@@ -12,58 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MLIVR_CONTROL__WB_CONTROL_HPP_
-#define MLIVR_CONTROL__WB_CONTROL_HPP_
+#ifndef MLIVR_CONTROL__BASE_CONTROLLER_HPP_
+#define MLIVR_CONTROL__BASE_CONTROLLER_HPP_
 
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <Eigen/Dense>
-#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <pinocchio/algorithm/frames.hpp>
-#include <pinocchio/algorithm/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "mlivr_control/types.hpp"
-#include "mlivr_control/visibility_control.hpp"
-#include "mlivr_control/wbc_solver.hpp"
+#include "mlivr_control/visibility_control.h"
 #include "mlivr_model/core.hpp"
-#include "mlivr_model/dynamics.hpp"
-#include "mlivr_model/kinematics.hpp"
 
 namespace mlivr_control
 {
 
-class WBControl : public rclcpp::Node
+class BaseController : public rclcpp::Node
 {
 public:
   MLIVR_CONTROL_PUBLIC
-  explicit WBControl(const rclcpp::NodeOptions & options);
-  virtual ~WBControl() = default;
+  explicit BaseController(const std::string & node_name, const rclcpp::NodeOptions & options);
+  virtual ~BaseController() = default;
 
-private:
-  void publishCommandStep();
+protected:
+  void publishTargetTF(
+    const Eigen::Vector3d & translation, const Eigen::Quaterniond & rotation,
+    const std::string & child_frame_id);
 
-  void publishPlannedRobotState(const std::vector<Eigen::VectorXd> & optimized_xs);
+  virtual void publishWaitingState() {}
 
-  void publishTrajectoryMarker();
+  virtual bool generateTrajectory() = 0;
 
-  void publishTargetTF(const pinocchio::SE3 & target_pose);
+  virtual Eigen::VectorXd computeCommandStep() = 0;
 
-  void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
-
-  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
-
-  void triggerCallback(const std_msgs::msg::Empty::SharedPtr msg);
-
-  bool computeTrajectory();
+  virtual std::vector<Eigen::Vector3d> getPlannedPath() = 0;
 
   // Publisher
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr cmd_pub_;
@@ -72,33 +62,38 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
-  // Timer
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   std::unique_ptr<mlivr_model::RobotCore> robot_core_;
-  std::shared_ptr<pinocchio::Model> model_ptr_;
 
-  std::unique_ptr<WbcSolver> wbc_solver_;
+  Eigen::VectorXd current_base_pose_;   // [x, y, z, qx, qy, qz, qw]
+  Eigen::VectorXd current_base_twist_;  // [vx, vy, vz, wx, wy, wz]
+  std::vector<double> current_joint_pos_;
+  std::mutex state_mutex_;
 
   int num_joints_;
   std::vector<std::string> ee_frames_;
 
-  std::vector<double> current_joint_pos_;
-
-  bool is_odom_received_ = false;
-  Eigen::VectorXd current_base_pose_;   // [x, y, z, qx, qy, qz, qw]
-  Eigen::VectorXd current_base_twist_;  // [vx, vy, vz, wx, wy, wz]
-
-  bool is_initialized_ = false;
-  size_t playback_idx_ = 0;
-
   bool is_triggered_ = false;
+  bool is_initialized_ = false;
+  bool is_odom_received_ = false;
 
-  pinocchio::SE3 target_ee_pose_se3_;
+  Eigen::Vector3d target_offset_;
+
+private:
+  void publishTrajectoryMarker(const std::vector<Eigen::Vector3d> & path_points);
+
+  void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
+
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
+  void triggerCallback(const std_msgs::msg::Empty::SharedPtr msg);
+
+  void timerCallback();
 };
 
 }  // namespace mlivr_control
 
-#endif  // MLIVR_CONTROL__WB_CONTROL_HPP_
+#endif  // MLIVR_CONTROL__BASE_CONTROLLER_HPP_

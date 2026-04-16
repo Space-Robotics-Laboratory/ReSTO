@@ -222,23 +222,50 @@
   </link>
   <joint name="limb_1_ee_fixed_joint" type="fixed">
     <parent link="limb_1_wrist_3_link"/>
-    <child link="limb_1_ee_link"/>
-    <origin rpy="0.0 0.0 1.57079632679" xyz="0.0 0.1 0.0"/>
+    <child link="limb_1_gripper_link"/>
+    <origin rpy="-1.5707963267948966 0 0" xyz="0 0.099 0"/>
   </joint>
-  <link name="limb_1_ee_link">
-    <collision>
+  <!-- For adding ft sensor in mjcf -->
+  <!-- <joint name="${prefix}_ee_sensor_joint" type="revolute">
+      <parent link="${prefix}_wrist_3_link"/>
+      <child link="${prefix}_gripper_link"/>
+      <origin xyz="0 0.099 0" rpy="${radians(-90)} 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="0" upper="0" effort="0" velocity="0"/>
+    </joint> -->
+  <link name="limb_1_gripper_link">
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
+      <inertia ixx="0.0002167" ixy="0" ixz="0" iyy="0.0002167" iyz="0" izz="0.000225"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
       <geometry>
-        <box size="0.01 0.01 0.01"/>
+        <cylinder length="0.05" radius="0.03"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.03"/>
+      </geometry>
     </collision>
+    <mujoco>
+      <site name="limb_1_ft_site" pos="0 0 0" rgba="1 0 0 1" size="0.01"/>
+      <site group="1" name="limb_1_gripper_site" pos="0 0 0.05" rgba="0 1 0 1" size="0.01"/>
+    </mujoco>
   </link>
-  <link name="limb_1_tool0"/>
-  <joint name="limb_1_wrist_3_link-tool0_fixed_joint" type="fixed">
-    <origin rpy="-1.57079632679 0 0" xyz="0 0.1 0"/>
-    <parent link="limb_1_wrist_3_link"/>
-    <child link="limb_1_tool0"/>
+  <joint name="limb_1_palm_fixed_joint" type="fixed">
+    <parent link="limb_1_gripper_link"/>
+    <child link="limb_1_palm_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0.05"/>
   </joint>
+  <link name="limb_1_palm_link">
+    </link>
   <joint name="limb_2_base_joint" type="fixed">
     <origin rpy="0 1.5707963267948966 4.71238898038469" xyz="0.0 -0.1 0.0"/>
     <parent link="base_link"/>
@@ -434,21 +461,48 @@
   </link>
   <joint name="limb_2_ee_fixed_joint" type="fixed">
     <parent link="limb_2_wrist_3_link"/>
-    <child link="limb_2_ee_link"/>
-    <origin rpy="0.0 0.0 1.57079632679" xyz="0.0 0.1 0.0"/>
+    <child link="limb_2_gripper_link"/>
+    <origin rpy="-1.5707963267948966 0 0" xyz="0 0.099 0"/>
   </joint>
-  <link name="limb_2_ee_link">
-    <collision>
+  <!-- For adding ft sensor in mjcf -->
+  <!-- <joint name="${prefix}_ee_sensor_joint" type="revolute">
+      <parent link="${prefix}_wrist_3_link"/>
+      <child link="${prefix}_gripper_link"/>
+      <origin xyz="0 0.099 0" rpy="${radians(-90)} 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="0" upper="0" effort="0" velocity="0"/>
+    </joint> -->
+  <link name="limb_2_gripper_link">
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
+      <inertia ixx="0.0002167" ixy="0" ixz="0" iyy="0.0002167" iyz="0" izz="0.000225"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
       <geometry>
-        <box size="0.01 0.01 0.01"/>
+        <cylinder length="0.05" radius="0.03"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.025"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.03"/>
+      </geometry>
     </collision>
+    <mujoco>
+      <site name="limb_2_ft_site" pos="0 0 0" rgba="1 0 0 1" size="0.01"/>
+      <site group="1" name="limb_2_gripper_site" pos="0 0 0.05" rgba="0 1 0 1" size="0.01"/>
+    </mujoco>
   </link>
-  <link name="limb_2_tool0"/>
-  <joint name="limb_2_wrist_3_link-tool0_fixed_joint" type="fixed">
-    <origin rpy="-1.57079632679 0 0" xyz="0 0.1 0"/>
-    <parent link="limb_2_wrist_3_link"/>
-    <child link="limb_2_tool0"/>
+  <joint name="limb_2_palm_fixed_joint" type="fixed">
+    <parent link="limb_2_gripper_link"/>
+    <child link="limb_2_palm_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0.05"/>
   </joint>
+  <link name="limb_2_palm_link">
+    </link>
 </robot>
