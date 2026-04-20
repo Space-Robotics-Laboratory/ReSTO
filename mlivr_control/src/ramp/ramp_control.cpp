@@ -79,13 +79,10 @@ bool RAMPControl::generateTrajectory()
     RCLCPP_INFO(this->get_logger(), "Generating trajectory using LRST optimization.");
     lrst_optimizer_->setBoundaryConditions(start_pos, target_pos);
 
-    std::vector<std::string> swing_joint_names;
-    int joints_per_limb = num_joints_ / ee_frames_.size();
-    for (int i = 0; i < joints_per_limb; ++i) {
-      swing_joint_names.push_back(robot_->getModel().names[2 + 1 * joints_per_limb + i]);
-    }
+    std::vector<std::string> swing_limb_joint_names =
+      robot_->getJointNamesBetweenFrames("base_link", ee_frames_[1]);
 
-    lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_joint_names);
+    lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_limb_joint_names);
 
     ramp::lrst::SolverParams current_solver_params = default_solver_params_;
     ramp::lrst::WeightParams current_weight_params = default_weight_params_;
