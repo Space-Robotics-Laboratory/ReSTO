@@ -28,6 +28,9 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
+  // ROS 2 parameters
+  use_lrst_ = this->declare_parameter<bool>("use_lrst", true);
+
   md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
   lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(
     kinematics_.get(), dynamics_.get(), num_joints_, ee_frames_.size());
@@ -95,7 +98,7 @@ bool RAMPControl::generateTrajectory()
   RCLCPP_INFO(this->get_logger(), "Start trajectory generation.");
 
   int nq = robot_->getModel().nq;
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
+  Eigen::VectorXd q = pinocchio::neutral(robot_->getModel());
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
     q(7 + i) = current_joint_pos_[i];
@@ -181,11 +184,16 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
     q(7 + i) = current_joint_pos_[i];
   }
 
-  // Eigen::Vector3d v_world = pos_spline_->getVelocity(current_time);
-  // Eigen::Vector3d w_world = ori_spline_->getAngularVelocity(current_time);
-  Eigen::Vector3d v_world =
-    lrst_optimizer_->computeBezierVelocity(current_time, optimized_bezier_P_);
-  Eigen::Vector3d w_world = ori_spline_->getAngularVelocity(current_time);
+  Eigen::Vector3d v_world = Eigen::Vector3d::Zero();
+  Eigen::Vector3d w_world = Eigen::Vector3d::Zero();
+
+  if (use_lrst_) {
+    v_world = lrst_optimizer_->computeBezierVelocity(current_time, optimized_bezier_P_);
+    w_world = ori_spline_->getAngularVelocity(current_time);
+  } else {
+    v_world = pos_spline_->getVelocity(current_time);
+    w_world = ori_spline_->getAngularVelocity(current_time);
+  }
 
   // 2. 遊脚手先(ee_frames_[1])の現在の姿勢(FK)を取得
   pinocchio::SE3 pose_swing = kinematics_->solveFK(q, ee_frames_[1]);
@@ -265,31 +273,29 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
-// std::vector<Eigen::Vector3d> RAMPControl::getPlannedPath()
-// {
-//   std::vector<Eigen::Vector3d> path;
-//   if (!pos_spline_) return path;
-
-//   double dt = 0.05;
-//   for (double t = 0; t <= duration_; t += dt) {
-//     path.push_back(pos_spline_->getPosition(t));
-//   }
-//   return path;
-// }
-
 std::vector<Eigen::Vector3d> RAMPControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
-
-  if (!lrst_optimizer_ || optimized_bezier_P_.cols() == 0) {
-    return path;
-  }
-
   double dt = 0.05;
-  for (double t = 0; t <= duration_; t += dt) {
-    path.push_back(lrst_optimizer_->computeBezierPosition(t, optimized_bezier_P_));
+
+  if (use_lrst_) {
+    if (!lrst_optimizer_ || optimized_bezier_P_.cols() == 0) {
+      return path;
+    }
+
+    for (double t = 0; t <= duration_; t += dt) {
+      path.push_back(lrst_optimizer_->computeBezierPosition(t, optimized_bezier_P_));
+    }
+    path.push_back(lrst_optimizer_->computeBezierPosition(duration_, optimized_bezier_P_));
+  } else {
+    if (!pos_spline_) {
+      return path;
+    }
+
+    for (double t = 0; t <= duration_; t += dt) {
+      path.push_back(pos_spline_->getPosition(t));
+    }
   }
-  path.push_back(lrst_optimizer_->computeBezierPosition(duration_, optimized_bezier_P_));
 
   return path;
 }

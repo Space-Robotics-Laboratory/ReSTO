@@ -55,6 +55,7 @@ private:
 
   std::unique_ptr<ramp::md::MomentumDistribution> md_solver_;
 
+  bool use_lrst_ = true;
   std::unique_ptr<ramp::lrst::LowReactionSwingTrajectory> lrst_optimizer_;
   Eigen::MatrixXd optimized_bezier_P_;
 
