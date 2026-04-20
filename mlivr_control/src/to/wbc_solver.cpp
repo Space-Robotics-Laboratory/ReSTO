@@ -91,10 +91,16 @@ bool WbcSolver::computeTrajectory(
 
   int T = params_.solver.horizon_steps;
 
+  double ctrl_reg_weight_default = params_.weights.control_reg;
+  double s_ctrl_start = 0.1;
+  double s_ctrl_brake = 0.9;
+  double ctrl_start_mult = 5.0;
+  double ctrl_brake_mult = 20.0;
+
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
   // TODO: Parameterize
   double s_start = 0.2;
-  double s_brake = 0.5;
+  double s_brake = 0.6;
   double start_mult = 5.0;
   double brake_mult = 20.0;
 
@@ -120,6 +126,19 @@ bool WbcSolver::computeTrajectory(
     phase.collision_frames = {swing_frame};
 
     phase.support_limbs = {fixed_frame};
+
+    double mult_ctrl = 1.0;
+    double s_ctrl = static_cast<double>(i) / std::max(T - 1, 1);
+    if (s_ctrl < s_ctrl_start) {
+      double ratio = (s_ctrl_start - s_ctrl) / std::max(s_ctrl_start, 1e-6);
+      mult_ctrl = 1.0 + (ctrl_start_mult - 1.0) * (ratio * ratio);
+    } else if (s_ctrl > s_ctrl_brake) {
+      double ratio = (s_ctrl - s_ctrl_brake) / std::max(1.0 - s_ctrl_brake, 1e-6);
+      mult_ctrl = 1.0 + (ctrl_brake_mult - 1.0) * (ratio * ratio);
+    } else {
+      mult_ctrl = 1.0;
+    }
+    params_.weights.control_reg = ctrl_reg_weight_default * mult_ctrl;
 
     double multiplier = 1.0;
     double s_vel = static_cast<double>(i) / std::max(T - 1, 1);
@@ -163,7 +182,8 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.support_limbs = {fixed_frame};
   terminal_phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_frame] = target_swing_ee_z;
-  params_.weights.ee_vel_damping = ee_vel_weight_default * brake_mult * 2.0;
+  params_.weights.control_reg = ctrl_reg_weight_default * ctrl_brake_mult * 2.0;
+  params_.weights.ee_vel_damping = ee_vel_weight_default * brake_mult * 1.0;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
