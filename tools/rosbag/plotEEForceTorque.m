@@ -17,12 +17,12 @@ clc; clear; close all;
 %% User settings
 
 % NOTE: Put csv files generated from rosbag under LIMBERO/tools/rosbag/ directory.
-csv_file = "csv" + filesep + "rosbag2_2026_04_16-13_00_36" + ".csv";
+csv_file = "csv" + filesep + "rosbag2_2026_04_20-16_10_58" + ".csv";
 
-save_fig = false;  % true/false
+save_fig = true;  % true/false
 
 plot_ft = true;
-plot_ee_error = true;
+plot_ee_error = false;
 plot_joint_torque = true;
 
 %% Parameters
