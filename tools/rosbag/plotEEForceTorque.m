@@ -16,13 +16,21 @@ clc; clear; close all;
 
 %% User settings
 
-% NOTE: Put csv files generated from rosbag under LIMBERO/tools/rosbag/ directory.
-csv_file = "csv" + filesep + "rosbag2_2026_04_20-16_10_58" + ".csv";
+% Kinematic Jacobian
+% csv_file = "csv" + filesep + "kj" + filesep + "rosbag2_2026_04_20-23_26_10" + ".csv";
+% Generalized Jacobian
+% csv_file = "csv" + filesep + "gj" + filesep + "rosbag2_2026_04_20-23_44_46" + ".csv";
+% LRST
+% csv_file = "csv" + filesep + "lrst" + filesep + "rosbag2_2026_04_21-00_16_43" + ".csv";
+% RAMP-PMD
+% csv_file = "csv" + filesep + "ramp" + filesep + "pmd" + filesep + "rosbag2_2026_04_21-00_21_24" + ".csv";
+% RAMP-FMD
+csv_file = "csv" + filesep + "ramp" + filesep + "fmd" + filesep + "rosbag2_2026_04_21-00_31_06" + ".csv";
 
 save_fig = true;  % true/false
 
 plot_ft = true;
-plot_ee_error = false;
+plot_ee_error = true;
 plot_joint_torque = true;
 
 %% Parameters
