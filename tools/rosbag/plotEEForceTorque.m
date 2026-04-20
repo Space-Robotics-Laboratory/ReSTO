@@ -25,9 +25,11 @@ clc; clear; close all;
 % RAMP-PMD
 % csv_file = "csv" + filesep + "ramp" + filesep + "pmd" + filesep + "rosbag2_2026_04_21-00_21_24" + ".csv";
 % RAMP-FMD
-csv_file = "csv" + filesep + "ramp" + filesep + "fmd" + filesep + "rosbag2_2026_04_21-00_31_06" + ".csv";
+% csv_file = "csv" + filesep + "ramp" + filesep + "fmd" + filesep + "rosbag2_2026_04_21-00_31_06" + ".csv";
+% Trajectory Optimization
+csv_file = "csv" + filesep + "to" + filesep + "rosbag2_2026_04_21-00_42_06" + ".csv";
 
-save_fig = true;  % true/false
+save_fig = false;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
