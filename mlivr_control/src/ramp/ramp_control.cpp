@@ -30,6 +30,18 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
 
   // ROS 2 parameters
   use_lrst_ = this->declare_parameter<bool>("use_lrst", true);
+  default_solver_params_.dt = this->declare_parameter<double>("solver.dt", 0.01);
+  default_solver_params_.step_duration =
+    this->declare_parameter<double>("solver.step_duration", 0.0);
+  default_solver_params_.step_height = this->declare_parameter<double>("solver.step_height", 0.0);
+  default_weight_params_.force_max = this->declare_parameter<double>("weights.force_max", 1.0);
+  default_weight_params_.moment_max = this->declare_parameter<double>("weights.moment_max", 1.0);
+  default_weight_params_.step_height_max =
+    this->declare_parameter<double>("weights.step_height_max", 1.0);
+  default_weight_params_.step_height_ave =
+    this->declare_parameter<double>("weights.step_height_ave", 1.0);
+
+  duration_ = default_solver_params_.step_duration;
 
   md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
   lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(
@@ -132,16 +144,8 @@ bool RAMPControl::generateTrajectory()
   RCLCPP_INFO(this->get_logger(), "Set robot state.");
   lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_joint_names);
 
-  ramp::lrst::SolverParams current_solver_params;
-  current_solver_params.dt = 0.01;
-  current_solver_params.step_duration = duration_;
-  current_solver_params.step_height = 0.05;
-
-  ramp::lrst::WeightParams current_weight_params;
-  current_weight_params.force_max = 1.0;
-  current_weight_params.moment_max = 1.0;
-  current_weight_params.step_height_max = 100.0;
-  current_weight_params.step_height_ave = 100.0;
+  ramp::lrst::SolverParams current_solver_params = default_solver_params_;
+  ramp::lrst::WeightParams current_weight_params = default_weight_params_;
 
   optimized_bezier_P_ =
     lrst_optimizer_->optimizeTrajectory(current_solver_params, current_weight_params);

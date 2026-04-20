@@ -21,6 +21,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     desc_pkg_dir = get_package_share_directory('mlivr_description')
     sim_pkg_dir = get_package_share_directory('mlivr_sim')
+    ctrl_pkg_path = get_package_share_directory('mlivr_control')
 
     urdf_file = os.path.join(desc_pkg_dir, 'urdf', 'mlivr.urdf')
     with open(urdf_file, 'r') as infp:
@@ -29,6 +30,7 @@ def generate_launch_description():
 
     mlivr_params = os.path.join(desc_pkg_dir, 'config', 'mlivr_params.yaml')
     sim_params = os.path.join(sim_pkg_dir, 'config', 'sim_params.yaml')
+    ramp_params = os.path.join(ctrl_pkg_path, 'config', 'ramp_params.yaml')
 
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
@@ -61,7 +63,7 @@ def generate_launch_description():
         executable='ramp_control_node',
         name='mlivr_ramp',
         output='screen',
-        parameters=[mlivr_params]
+        parameters=[mlivr_params, ramp_params]
     )
 
     return LaunchDescription([
