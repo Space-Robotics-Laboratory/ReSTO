@@ -250,6 +250,7 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
 
   double force_cost = weight_params_.force_max * max_force;
   double moment_cost = weight_params_.moment_max * max_moment;
+
   double max_step_height_cost =
     weight_params_.step_height_max * std::abs(solver_params_.step_height - max_height);
   double ave_step_height_cost =

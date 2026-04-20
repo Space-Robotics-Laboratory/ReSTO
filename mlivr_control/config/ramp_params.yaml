@@ -14,8 +14,8 @@ mlivr_ramp:
     weights:
       force_max: 1.0 # Max of linear component of derivative of momentum
       moment_max: 1.0 # Max of angular component of derivative of momentum
-      step_height_max: 100.0
-      step_height_ave: 100.0
+      step_height_max: 15.0
+      step_height_ave: 15.0
 
     # MD
     alpha: 1.0 # Momentum distribution factor
