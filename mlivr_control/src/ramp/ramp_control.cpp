@@ -129,16 +129,19 @@ bool RAMPControl::generateTrajectory()
   RCLCPP_INFO(this->get_logger(), "Set robot state.");
   lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_joint_names);
 
-  ramp::lrst::OptimizationWeights weights;
-  weights.tf = duration_;
-  weights.step_height = 0.05;
-  weights.k_mom_lin_max = 1.0;
-  weights.k_mom_ang_max = 1.0;
-  weights.k_height_max = 100.0;
-  weights.k_height_ave = 100.0;
-  // NLoptの最適化を実行（※ここで数秒ブロッキングされます）
-  RCLCPP_INFO(this->get_logger(), "Optimizing trajectory...");
-  optimized_bezier_P_ = lrst_optimizer_->optimizeTrajectory(weights);
+  ramp::lrst::SolverParams current_solver_params;
+  current_solver_params.dt = 0.01;
+  current_solver_params.step_duration = duration_;
+  current_solver_params.step_height = 0.05;
+
+  ramp::lrst::WeightParams current_weight_params;
+  current_weight_params.force_max = 1.0;
+  current_weight_params.moment_max = 1.0;
+  current_weight_params.step_height_max = 100.0;
+  current_weight_params.step_height_ave = 100.0;
+
+  optimized_bezier_P_ =
+    lrst_optimizer_->optimizeTrajectory(current_solver_params, current_weight_params);
 
   // ====================================================
   // 姿勢(Orientation)の軌道生成はそのまま使用

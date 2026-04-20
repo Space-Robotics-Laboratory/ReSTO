@@ -31,17 +31,21 @@ namespace ramp
 namespace lrst
 {
 
-struct OptimizationWeights
+struct SolverParams
 {
-  double k_mom_lin_max = 1.0;
-  double k_mom_ang_max = 1.0;
-  double k_height_max = 1.0;
-  double k_height_ave = 1.0;
+  double dt = 0.01;  // [s]
 
-  double step_height = 0.05;
+  double step_duration = 10.0;  // [s]
+  double step_height = 0.05;    // [m]
+};
 
-  double dt = 0.01;  // 軌道計算のタイムステップ [s]
-  double tf = 2.0;   // 遊脚の移動時間 [s]
+struct WeightParams
+{
+  double force_max = 1.0;
+  double moment_max = 1.0;
+
+  double step_height_max = 1.0;
+  double step_height_ave = 1.0;
 };
 
 class RAMP_PUBLIC LowReactionSwingTrajectory
@@ -51,7 +55,8 @@ public:
     fbml::Kinematics * kinematics, fbml::Dynamics * dynamics, int num_joints, int num_limbs);
   virtual ~LowReactionSwingTrajectory() = default;
 
-  Eigen::MatrixXd optimizeTrajectory(const OptimizationWeights & weights);
+  Eigen::MatrixXd optimizeTrajectory(
+    const SolverParams & solver_params, const WeightParams & weight_params);
 
   void setBoundaryConditions(const Eigen::Vector3d & start_pos, const Eigen::Vector3d & end_pos);
 
@@ -68,7 +73,8 @@ private:
 
   double computeCost(const std::vector<double> & x);
 
-  OptimizationWeights current_weights_;
+  SolverParams solver_params_;
+  WeightParams weight_params_;
 
   const int bezier_order_ = 7;
   Eigen::MatrixXd bezier_base_matrix_;

@@ -43,32 +43,31 @@ LowReactionSwingTrajectory::LowReactionSwingTrajectory(
 {
 }
 
-Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(const OptimizationWeights & weights)
+Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(
+  const SolverParams & solver_params, const WeightParams & weight_params)
 {
-  current_weights_ = weights;
+  std::cout << "[LRST] Optimizing trajectory..." << std::endl;
 
-  // 始点と終点から、中間点の初期推定値(initial_guess)を自動計算する
+  solver_params_ = solver_params;
+  weight_params_ = weight_params;
+
+  // Compute initial guess of mid-point based on start and end pos
   Eigen::Vector3d start_pos = bezier_base_matrix_.col(0);
   Eigen::Vector3d end_pos = bezier_base_matrix_.col(7);
   Eigen::Vector3d mid_pos = (start_pos + end_pos) / 2.0;
 
-  // Z方向（高さ）に step_height を足す
-  mid_pos.z() += current_weights_.step_height;
+  mid_pos.z() += solver_params.step_height;
 
-  // MATLABの x0 (要素数6) を作成
-  std::vector<double> initial_guess = {
-    mid_pos.x(), mid_pos.y(), mid_pos.z(),  // 制御点4の初期値
-    mid_pos.x(), mid_pos.y(), mid_pos.z()   // 制御点5の初期値
-  };
+  // Initial optimization variable x0
+  std::vector<double> initial_guess = {mid_pos.x(), mid_pos.y(), mid_pos.z(),
+                                       mid_pos.x(), mid_pos.y(), mid_pos.z()};
 
   unsigned int num_vars = initial_guess.size();
 
-  // NLoptの初期化
-  // LN_BOBYQA は境界制約付きの勾配不要(Derivative-Free)最適化アルゴリズムで、
-  // MATLABのfminconの代替として非常に優秀です。
+  // Initialize NLopt
   nlopt::opt opt(nlopt::LN_BOBYQA, num_vars);
 
-  // 評価関数と、それに渡すデータ（thisポインタ）をセット
+  // Set the evaluation function and the data (this pointer) passed to it
   opt.set_min_objective(LowReactionSwingTrajectory::objectiveWrapper, this);
 
   // 最適化変数の上下限（Bounds）の設定（必要に応じて調整）
@@ -77,7 +76,7 @@ Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(const Optimizatio
   opt.set_lower_bounds(lower_bounds);
   opt.set_upper_bounds(upper_bounds);
 
-  // 終了条件の設定（許容誤差や最大評価回数）
+  // Termination conditions 終了条件の設定（許容誤差や最大評価回数）
   opt.set_xtol_rel(1e-4);
   opt.set_maxeval(1000);  // 無限ループを防ぐため、最大評価回数を設定
 
@@ -85,7 +84,6 @@ Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(const Optimizatio
   double min_cost = 0.0;
 
   try {
-    // ▼ 修正: 未使用の result 変数を削除して直接実行する
     opt.optimize(x_opt, min_cost);
     std::cout << "[LRST] Optimization successful. Minimum cost: " << min_cost << std::endl;
   } catch (std::exception & e) {
@@ -146,7 +144,7 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierPosition(
   double t, const Eigen::MatrixXd & P) const
 {
   Eigen::Vector3d pos = Eigen::Vector3d::Zero();
-  double tf = current_weights_.tf;
+  double tf = solver_params_.step_duration;
   int m = bezier_order_;
 
   for (int i = 0; i <= m; ++i) {
@@ -160,7 +158,7 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierVelocity(
   double t, const Eigen::MatrixXd & P) const
 {
   Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-  double tf = current_weights_.tf;
+  double tf = solver_params_.step_duration;
   int m = bezier_order_;
   if (t >= tf) return vel;
 
@@ -179,8 +177,8 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
   P.col(3) = Eigen::Vector3d(x[0], x[1], x[2]);
   P.col(4) = Eigen::Vector3d(x[3], x[4], x[5]);
 
-  double tf = current_weights_.tf;
-  double dt = current_weights_.dt;
+  double tf = solver_params_.step_duration;
+  double dt = solver_params_.dt;
   int num_steps = static_cast<int>(tf / dt) + 1;
 
   double max_force = 0.0;
@@ -248,10 +246,16 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
   double mean_force = sum_force / (num_steps - 1);
   double mean_height = sum_height / num_steps;
 
-  double cost = current_weights_.k_mom_lin_max * max_force +
-    current_weights_.k_mom_ang_max * max_moment +
-    current_weights_.k_height_max * std::abs(current_weights_.step_height - max_height) +
-    current_weights_.k_height_ave * std::abs(current_weights_.step_height - mean_height);
+  // === Costs ===
+
+  double force_cost = weight_params_.force_max * max_force;
+  double moment_cost = weight_params_.moment_max * max_moment;
+  double max_step_height_cost =
+    weight_params_.step_height_max * std::abs(solver_params_.step_height - max_height);
+  double ave_step_height_cost =
+    weight_params_.step_height_ave * std::abs(solver_params_.step_height - mean_height);
+
+  double cost = force_cost + moment_cost + max_step_height_cost + ave_step_height_cost;
 
   return cost;
 }
