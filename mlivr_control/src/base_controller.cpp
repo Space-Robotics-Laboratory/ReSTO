@@ -30,6 +30,9 @@ BaseController::BaseController(const std::string & node_name, const rclcpp::Node
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
   robot_ = std::make_unique<fbml::RobotCore>(urdf_path, Eigen::Vector3d::Zero());
 
+  robot_->setActuatorParameters(
+    this->declare_parameter<double>("mj.armature"), this->declare_parameter<double>("mj.damping"));
+
   num_joints_ = robot_->getModel().nv - 6;
 
   // Publisher
