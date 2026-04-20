@@ -25,8 +25,8 @@ namespace mlivr_control
 RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
 : BaseController("ramp_control", options)
 {
-  kinematics_ = std::make_unique<mlivr_model::Kinematics>(*robot_core_);
-  dynamics_ = std::make_unique<mlivr_model::Dynamics>(*robot_core_);
+  kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
+  dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
 
@@ -37,7 +37,7 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
 
 bool RAMPControl::generateTrajectory()
 {
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -103,7 +103,7 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
     return Eigen::VectorXd::Zero(num_joints_);
   }
 
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -133,7 +133,7 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   Eigen::MatrixXd J_m_swing = J_swing.block(0, 6, 6, num_joints_);
 
   Eigen::MatrixXd H_b, H_bm;
-  dynamics_->computeInertiaMatrices(q, H_b, H_bm);
+  dynamics_->computePartitionedMassMatrices(q, H_b, H_bm);
 
   // --- RAMP-MD による計算フロー ---
 
@@ -177,7 +177,7 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
     // 速度指令値からオイラー積分して目標角度を更新
     target_joint_pos_[i] += phi_dot_total(i) * dt;
 
-    cmd_msg.name.push_back(robot_core_->getModel().names[i + 2]);
+    cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position[i] = target_joint_pos_[i];
     cmd_msg.velocity[i] = phi_dot_total(i);
     // cmd_msg.velocity.push_back(0.0);

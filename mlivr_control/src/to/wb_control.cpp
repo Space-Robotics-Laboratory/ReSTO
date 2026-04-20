@@ -37,7 +37,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
   params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
   params.ee_frames = ee_frames_;
 
-  model_ptr_ = std::make_shared<pinocchio::Model>(robot_core_->getModel());
+  model_ptr_ = std::make_shared<pinocchio::Model>(robot_->getModel());
   wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());

@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include <fbml/core.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -30,7 +31,6 @@
 
 #include "mlivr_control/types.hpp"
 #include "mlivr_control/visibility_control.h"
-#include "mlivr_model/core.hpp"
 
 namespace mlivr_control
 {
@@ -66,7 +66,7 @@ protected:
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-  std::unique_ptr<mlivr_model::RobotCore> robot_core_;
+  std::unique_ptr<fbml::RobotCore> robot_;
 
   Eigen::VectorXd current_base_pose_;   // [x, y, z, qx, qy, qz, qw]
   Eigen::VectorXd current_base_twist_;  // [vx, vy, vz, wx, wy, wz]

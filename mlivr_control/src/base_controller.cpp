@@ -28,9 +28,9 @@ BaseController::BaseController(const std::string & node_name, const rclcpp::Node
 
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
-  robot_core_ = std::make_unique<mlivr_model::RobotCore>(urdf_path);
+  robot_ = std::make_unique<fbml::RobotCore>(urdf_path, Eigen::Vector3d::Zero());
 
-  num_joints_ = robot_core_->getModel().nv - 6;
+  num_joints_ = robot_->getModel().nv - 6;
 
   // Publisher
   cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_cmds", 10);

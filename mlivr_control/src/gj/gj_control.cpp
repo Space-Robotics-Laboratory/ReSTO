@@ -22,8 +22,8 @@ namespace mlivr_control
 
 GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_control", options)
 {
-  kinematics_ = std::make_unique<mlivr_model::Kinematics>(*robot_core_);
-  dynamics_ = std::make_unique<mlivr_model::Dynamics>(*robot_core_);
+  kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
+  dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   target_joint_pos_.resize(num_joints_, 0.0);
 
@@ -32,7 +32,7 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_c
 
 bool GJControl::generateTrajectory()
 {
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -87,7 +87,7 @@ Eigen::VectorXd GJControl::computeCommandStep()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
 
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -159,7 +159,7 @@ Eigen::VectorXd GJControl::computeCommandStep()
     double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
     target_joint_pos_[i] += safe_cmd * dt;
 
-    cmd_msg.name.push_back(robot_core_->getModel().names[i + 2]);
+    cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position.push_back(target_joint_pos_[i]);
     cmd_msg.velocity.push_back(0.0);
     cmd_msg.effort.push_back(0.0);

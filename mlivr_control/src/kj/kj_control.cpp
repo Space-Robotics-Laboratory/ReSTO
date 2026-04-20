@@ -22,7 +22,7 @@ namespace mlivr_control
 
 KJControl::KJControl(const rclcpp::NodeOptions & options) : BaseController("kj_control", options)
 {
-  kinematics_ = std::make_unique<mlivr_model::Kinematics>(*robot_core_);
+  kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
 
   target_joint_pos_.resize(num_joints_, 0.0);
 
@@ -31,7 +31,7 @@ KJControl::KJControl(const rclcpp::NodeOptions & options) : BaseController("kj_c
 
 bool KJControl::generateTrajectory()
 {
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -86,7 +86,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
 
-  int nq = robot_core_->getModel().nq;
+  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -164,7 +164,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
     double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
     target_joint_pos_[i] += safe_cmd * dt;
 
-    cmd_msg.name.push_back(robot_core_->getModel().names[i + 2]);
+    cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position.push_back(target_joint_pos_[i]);
     cmd_msg.velocity.push_back(0.0);
     cmd_msg.effort.push_back(0.0);

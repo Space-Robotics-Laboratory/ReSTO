@@ -23,12 +23,12 @@
 
 #include "trajectory_generator/spline.hpp"
 #include "trajectory_generator/trajectory_generator.hpp"
+#include <fbml/dynamics.hpp>
+#include <fbml/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include "mlivr_control/base_controller.hpp"
 #include "mlivr_control/visibility_control.h"
-#include "mlivr_model/dynamics.hpp"
-#include "mlivr_model/kinematics.hpp"
 
 namespace mlivr_control
 {
@@ -48,8 +48,8 @@ protected:
   std::vector<Eigen::Vector3d> getPlannedPath() override;
 
 private:
-  std::unique_ptr<mlivr_model::Kinematics> kinematics_;
-  std::unique_ptr<mlivr_model::Dynamics> dynamics_;
+  std::unique_ptr<fbml::Kinematics> kinematics_;
+  std::unique_ptr<fbml::Dynamics> dynamics_;
 
   std::vector<double> target_joint_pos_;
 
