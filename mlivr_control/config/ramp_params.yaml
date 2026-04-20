@@ -8,6 +8,8 @@ mlivr_ramp:
       dt: 0.01
       step_duration: 10.0
       step_height: 0.05
+      relative_tol: 1e-4
+      max_iter: 1000
 
     weights:
       force_max: 1.0 # Max of linear component of derivative of momentum

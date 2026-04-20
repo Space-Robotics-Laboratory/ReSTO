@@ -37,6 +37,9 @@ struct SolverParams
 
   double step_duration = 10.0;  // [s]
   double step_height = 0.05;    // [m]
+
+  double relative_tol = 1e-4;
+  int max_iter = 1000;
 };
 
 struct WeightParams

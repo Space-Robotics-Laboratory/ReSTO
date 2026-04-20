@@ -34,6 +34,9 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   default_solver_params_.step_duration =
     this->declare_parameter<double>("solver.step_duration", 0.0);
   default_solver_params_.step_height = this->declare_parameter<double>("solver.step_height", 0.0);
+  default_solver_params_.relative_tol =
+    this->declare_parameter<double>("solver.relative_tol", 1e-4);
+  default_solver_params_.max_iter = this->declare_parameter<int>("solver.max_iter", 1000);
   default_weight_params_.force_max = this->declare_parameter<double>("weights.force_max", 1.0);
   default_weight_params_.moment_max = this->declare_parameter<double>("weights.moment_max", 1.0);
   default_weight_params_.step_height_max =

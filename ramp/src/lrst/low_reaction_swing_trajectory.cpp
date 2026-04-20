@@ -56,7 +56,7 @@ Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(
   Eigen::Vector3d end_pos = bezier_base_matrix_.col(7);
   Eigen::Vector3d mid_pos = (start_pos + end_pos) / 2.0;
 
-  mid_pos.z() += solver_params.step_height;
+  mid_pos.z() += solver_params_.step_height;
 
   // Initial optimization variable x0
   std::vector<double> initial_guess = {mid_pos.x(), mid_pos.y(), mid_pos.z(),
@@ -70,15 +70,15 @@ Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(
   // Set the evaluation function and the data (this pointer) passed to it
   opt.set_min_objective(LowReactionSwingTrajectory::objectiveWrapper, this);
 
-  // 最適化変数の上下限（Bounds）の設定（必要に応じて調整）
+  // Bounds of optimization variables
   std::vector<double> lower_bounds(num_vars, -10.0);
   std::vector<double> upper_bounds(num_vars, 10.0);
   opt.set_lower_bounds(lower_bounds);
   opt.set_upper_bounds(upper_bounds);
 
-  // Termination conditions 終了条件の設定（許容誤差や最大評価回数）
-  opt.set_xtol_rel(1e-4);
-  opt.set_maxeval(1000);  // 無限ループを防ぐため、最大評価回数を設定
+  // Termination conditions
+  opt.set_xtol_rel(solver_params_.relative_tol);
+  opt.set_maxeval(solver_params_.max_iter);
 
   std::vector<double> x_opt = initial_guess;
   double min_cost = 0.0;
