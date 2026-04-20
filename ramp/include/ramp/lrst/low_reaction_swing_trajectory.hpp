@@ -20,11 +20,10 @@
 
 #include "ramp/visibility_control.h"
 
+#include <fbml/dynamics.hpp>
+#include <fbml/kinematics.hpp>
 #include <nlopt.hpp>
 #include <pinocchio/spatial/se3.hpp>
-
-#include "mlivr_model/dynamics.hpp"
-#include "mlivr_model/kinematics.hpp"
 
 namespace ramp
 {
@@ -46,8 +45,7 @@ class LowReactionSwingTrajectory
 public:
   RAMP_PUBLIC
   explicit LowReactionSwingTrajectory(
-    mlivr_model::Kinematics * kinematics, mlivr_model::Dynamics * dynamics, int num_joints,
-    int num_limbs);
+    fbml::Kinematics * kinematics, fbml::Dynamics * dynamics, int num_joints, int num_limbs);
   virtual ~LowReactionSwingTrajectory() = default;
 
   RAMP_PUBLIC
@@ -84,8 +82,8 @@ private:
   int num_joints_;
   int num_limbs_;
 
-  mlivr_model::Kinematics * kinematics_;
-  mlivr_model::Dynamics * dynamics_;
+  fbml::Kinematics * kinematics_;
+  fbml::Dynamics * dynamics_;
 
   Eigen::VectorXd q_init_;
   std::string swing_frame_name_;

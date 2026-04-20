@@ -14,7 +14,7 @@ pkg_check_modules(NLOPT REQUIRED nlopt)
 
 set(COAL_DISABLE_HPP_FCL_WARNINGS ON)
 find_package(pinocchio REQUIRED)
-find_package(mlivr_model REQUIRED)  # TODO: Remove
+find_package(fbml REQUIRED)
 
 # add library
 add_library(${PROJECT_NAME} SHARED
@@ -36,14 +36,14 @@ target_link_libraries(${PROJECT_NAME}
   pinocchio::pinocchio
 )
 
-ament_target_dependencies(${PROJECT_NAME} mlivr_model)
+ament_target_dependencies(${PROJECT_NAME} fbml)
 
 # export dependencies
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   Eigen3
   pinocchio
-  mlivr_model
+  fbml
 )
 
 # install rules

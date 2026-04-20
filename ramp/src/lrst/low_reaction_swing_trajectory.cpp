@@ -37,8 +37,7 @@ double nChoosek(int n, int k)
 }
 
 LowReactionSwingTrajectory::LowReactionSwingTrajectory(
-  mlivr_model::Kinematics * kinematics, mlivr_model::Dynamics * dynamics, int num_joints,
-  int num_limbs)
+  fbml::Kinematics * kinematics, fbml::Dynamics * dynamics, int num_joints, int num_limbs)
 : num_joints_(num_joints), num_limbs_(num_limbs), kinematics_(kinematics), dynamics_(dynamics)
 {
 }
@@ -194,7 +193,7 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
     // IKを解く（q_prev を初期値として渡し、結果で上書きされる）
     Eigen::VectorXd q = q_prev;
     bool ik_success =
-      kinematics_->solveNumericalIK(q, swing_frame_name_, swing_joint_names_, pose_des);
+      kinematics_->solveNumericalIK(q, swing_frame_name_, pose_des, swing_joint_names_);
 
     if (!ik_success) {
       return 1e9;  // ペナルティ
@@ -206,7 +205,7 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
     }
 
     Eigen::MatrixXd H_b, H_bm;
-    dynamics_->computeInertiaMatrices(q, H_b, H_bm);
+    dynamics_->computePartitionedMassMatrices(q, H_b, H_bm);
 
     // 遊脚の運動量 L を計算
     Eigen::VectorXd L = H_bm * q_dot;
