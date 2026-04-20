@@ -72,14 +72,12 @@ private:
   static double objectiveWrapper(
     const std::vector<double> & x, std::vector<double> & grad, void * data);
 
-  // 7次ベジェ曲線の位置を計算するヘルパー関数
-  // Eigen::Vector3d computeBezierPosition(double t, const Eigen::MatrixXd & P);
-
   // --- 実際の評価関数（コスト計算） ---
   double computeCost(const std::vector<double> & x);
 
   OptimizationWeights current_weights_;
 
+  const int bezier_order_ = 7;
   Eigen::MatrixXd bezier_base_matrix_;
 
   int num_joints_;

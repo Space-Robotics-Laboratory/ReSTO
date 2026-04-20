@@ -102,19 +102,19 @@ Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(const Optimizatio
 void LowReactionSwingTrajectory::setBoundaryConditions(
   const Eigen::Vector3d & start_pos, const Eigen::Vector3d & end_pos)
 {
-  // 3x8 のベジェ曲線制御点行列を初期化 (MATLABの AA)
-  bezier_base_matrix_ = Eigen::MatrixXd::Zero(3, 8);
+  constexpr int kDof = 3;
+  bezier_base_matrix_ = Eigen::MatrixXd::Zero(kDof, bezier_order_ + 1);
 
-  // 始点での位置・速度・加速度がゼロ（滑らかな動き出し）になるよう、
-  // 最初の4つの制御点を始点に一致させる
+  // Constraints for start point
   bezier_base_matrix_.col(0) = start_pos;
   bezier_base_matrix_.col(1) = start_pos;
   bezier_base_matrix_.col(2) = start_pos;
-  bezier_base_matrix_.col(3) = start_pos;  // ※ここは後で最適化で動かします
 
-  // 終点での位置・速度・加速度がゼロになるよう、
-  // 最後の4つの制御点を終点に一致させる
-  bezier_base_matrix_.col(4) = end_pos;  // ※ここは後で最適化で動かします
+  // Initialize mid-point constraints (subject to change during optimization)
+  bezier_base_matrix_.col(3) = start_pos;
+  bezier_base_matrix_.col(4) = end_pos;
+
+  // Constraints for end point
   bezier_base_matrix_.col(5) = end_pos;
   bezier_base_matrix_.col(6) = end_pos;
   bezier_base_matrix_.col(7) = end_pos;
@@ -150,7 +150,7 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierPosition(
 {
   Eigen::Vector3d pos = Eigen::Vector3d::Zero();
   double tf = current_weights_.tf;
-  int m = 7;  // 7次ベジェ曲線
+  int m = bezier_order_;
 
   for (int i = 0; i <= m; ++i) {
     double b = nChoosek(m, i) * std::pow(t / tf, i) * std::pow((tf - t) / tf, m - i);
@@ -164,7 +164,7 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierVelocity(
 {
   Eigen::Vector3d vel = Eigen::Vector3d::Zero();
   double tf = current_weights_.tf;
-  int m = 7;
+  int m = bezier_order_;
   if (t >= tf) return vel;
 
   // ベジェ曲線の微分公式
