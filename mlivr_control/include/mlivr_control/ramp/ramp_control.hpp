@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "ramp/lrst/low_reaction_swing_trajectory.hpp"
 #include "ramp/md/momentum_distribution.hpp"
 #include "trajectory_generator/spline.hpp"
 #include "trajectory_generator/trajectory_generator.hpp"
@@ -53,6 +54,9 @@ private:
   std::unique_ptr<fbml::Dynamics> dynamics_;
 
   std::unique_ptr<ramp::md::MomentumDistribution> md_solver_;
+
+  std::unique_ptr<ramp::lrst::LowReactionSwingTrajectory> lrst_optimizer_;
+  Eigen::MatrixXd optimized_bezier_P_;
 
   std::vector<double> target_joint_pos_;
 

@@ -14,6 +14,7 @@
 
 #include "ramp/lrst/low_reaction_swing_trajectory.hpp"
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
@@ -42,8 +43,7 @@ LowReactionSwingTrajectory::LowReactionSwingTrajectory(
 {
 }
 
-std::vector<double> LowReactionSwingTrajectory::optimizeTrajectory(
-  const OptimizationWeights & weights)
+Eigen::MatrixXd LowReactionSwingTrajectory::optimizeTrajectory(const OptimizationWeights & weights)
 {
   current_weights_ = weights;
 
@@ -92,7 +92,11 @@ std::vector<double> LowReactionSwingTrajectory::optimizeTrajectory(
     std::cerr << "[LRST] NLopt failed: " << e.what() << std::endl;
   }
 
-  return x_opt;
+  Eigen::MatrixXd P_opt = bezier_base_matrix_;
+  P_opt.col(3) = Eigen::Vector3d(x_opt[0], x_opt[1], x_opt[2]);
+  P_opt.col(4) = Eigen::Vector3d(x_opt[3], x_opt[4], x_opt[5]);
+
+  return P_opt;
 }
 
 void LowReactionSwingTrajectory::setBoundaryConditions(
@@ -142,7 +146,7 @@ double LowReactionSwingTrajectory::objectiveWrapper(
 }
 
 Eigen::Vector3d LowReactionSwingTrajectory::computeBezierPosition(
-  double t, const Eigen::MatrixXd & P)
+  double t, const Eigen::MatrixXd & P) const
 {
   Eigen::Vector3d pos = Eigen::Vector3d::Zero();
   double tf = current_weights_.tf;
@@ -153,6 +157,22 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierPosition(
     pos += b * P.col(i);
   }
   return pos;
+}
+
+Eigen::Vector3d LowReactionSwingTrajectory::computeBezierVelocity(
+  double t, const Eigen::MatrixXd & P) const
+{
+  Eigen::Vector3d vel = Eigen::Vector3d::Zero();
+  double tf = current_weights_.tf;
+  int m = 7;
+  if (t >= tf) return vel;
+
+  // ベジェ曲線の微分公式
+  for (int i = 0; i <= m - 1; ++i) {
+    double b = nChoosek(m - 1, i) * std::pow(t / tf, i) * std::pow((tf - t) / tf, m - 1 - i);
+    vel += b * (static_cast<double>(m) / tf) * (P.col(i + 1) - P.col(i));
+  }
+  return vel;
 }
 
 // 実際の評価関数（MATLABの opt_function_low_reaction_bez に相当）
@@ -168,8 +188,12 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
   int num_steps = static_cast<int>(tf / dt) + 1;
 
   double max_force = 0.0;
+  double max_moment = 0.0;
   double sum_force = 0.0;
   double max_height = -1e9;
+  double sum_height = 0.0;
+
+  double ground_z = P(2, 0);
 
   Eigen::VectorXd q_prev = q_init_;
   Eigen::VectorXd q_dot_prev;
@@ -185,7 +209,10 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
 
     // ベジェ曲線から目標手先位置を取得
     Eigen::Vector3d x_des = computeBezierPosition(t, P);
-    max_height = std::max(max_height, x_des.z());
+
+    double current_height = x_des.z() - ground_z;
+    max_height = std::max(max_height, current_height);
+    sum_height += current_height;
 
     // ▼ 修正: 回転は初期姿勢のまま維持し、位置だけをベジェ曲線に従わせる
     pinocchio::SE3 pose_des(R_des, x_des);
@@ -199,9 +226,9 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
       return 1e9;  // ペナルティ
     }
 
-    Eigen::VectorXd q_dot = Eigen::VectorXd::Zero(q.size());
+    Eigen::VectorXd q_dot = Eigen::VectorXd::Zero(num_joints_);
     if (i > 0) {
-      q_dot = (q - q_prev) / dt;  // 微分で関節速度を算出
+      q_dot = (q.tail(num_joints_) - q_prev.tail(num_joints_)) / dt;
     }
 
     Eigen::MatrixXd H_b, H_bm;
@@ -215,8 +242,10 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
       Eigen::VectorXd L_dot = (L - L_prev) / dt;
 
       double force_norm = L_dot.head<3>().norm();  // 並進反力のノルム (Ld_lin)
+      double moment_norm = L_dot.tail<3>().norm();
 
       max_force = std::max(max_force, force_norm);
+      max_moment = std::max(max_moment, moment_norm);
       sum_force += force_norm;
     }
 
@@ -227,10 +256,13 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
   }
 
   double mean_force = sum_force / (num_steps - 1);
+  double mean_height = sum_height / num_steps;
 
   // 3. 評価関数の計算 (ペナルティの合算)
-  double cost = current_weights_.k_mom_max * max_force + current_weights_.k_mom_ave * mean_force;
-  // + current_weights_.k_height_max * std::abs(current_weights_.step_height - (max_height - P(2,0)));
+  double cost = current_weights_.k_mom_lin_max * max_force +
+    current_weights_.k_mom_ang_max * max_moment +
+    current_weights_.k_height_max * std::abs(current_weights_.step_height - max_height) +
+    current_weights_.k_height_ave * std::abs(current_weights_.step_height - mean_height);
 
   return cost;
 }

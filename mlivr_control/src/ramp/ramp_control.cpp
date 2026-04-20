@@ -29,14 +29,71 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
+  lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(
+    kinematics_.get(), dynamics_.get(), num_joints_, ee_frames_.size());
 
   target_joint_pos_.resize(num_joints_, 0.0);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
+// bool RAMPControl::generateTrajectory()
+// {
+//   int nq = robot_->getModel().nq;
+//   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
+//   q.head(7) = current_base_pose_;
+//   for (int i = 0; i < num_joints_; ++i) {
+//     q(7 + i) = current_joint_pos_[i];
+//     target_joint_pos_[i] = current_joint_pos_[i];
+//   }
+
+//   pinocchio::SE3 pose_R = kinematics_->solveFK(q, ee_frames_[1]);
+
+//   Eigen::Vector3d start_pos = pose_R.translation();
+//   Eigen::Quaterniond start_quat(pose_R.rotation());
+
+//   auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
+//   Eigen::Vector3d target_pos = start_pos + displacement;
+//   Eigen::Quaterniond target_quat = start_quat;
+
+//   Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
+//   Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
+//   Eigen::Quaterniond mid_quat = start_quat;
+
+//   duration_ = 10.0;
+
+//   trajectory_generator::VectorStateConstraint start_p_c{
+//     0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+//   trajectory_generator::VectorStateConstraint end_p_c{
+//     duration_, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+//   auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
+
+//   trajectory_generator::VectorStateConstraint mid_p_c{duration_ / 2.0, mid_pos};
+//   trajectory_generator::addConstraint(pos_constraints, mid_p_c);
+
+//   trajectory_generator::AngularStateConstraint start_o_c{
+//     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+//   trajectory_generator::AngularStateConstraint end_o_c{
+//     duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+//   auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
+
+//   trajectory_generator::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
+//   trajectory_generator::addConstraint(ori_constraints, mid_o_c);
+
+//   pos_spline_ = std::make_unique<trajectory_generator::VectorSpline>(pos_constraints, 3);
+//   ori_spline_ = std::make_unique<trajectory_generator::OrientationSpline>(ori_constraints);
+
+//   trajectory_start_time_ = this->now().seconds();
+//   is_trajectory_active_ = true;
+//   RCLCPP_INFO(this->get_logger(), "Trajectory generation completed. Started tracking.");
+
+//   return true;
+// }
+
 bool RAMPControl::generateTrajectory()
 {
+  RCLCPP_INFO(this->get_logger(), "Start trajectory generation.");
+
   int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
   q.head(7) = current_base_pose_;
@@ -46,7 +103,6 @@ bool RAMPControl::generateTrajectory()
   }
 
   pinocchio::SE3 pose_R = kinematics_->solveFK(q, ee_frames_[1]);
-
   Eigen::Vector3d start_pos = pose_R.translation();
   Eigen::Quaterniond start_quat(pose_R.rotation());
 
@@ -54,31 +110,43 @@ bool RAMPControl::generateTrajectory()
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = start_quat;
 
-  Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
-  Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
-  Eigen::Quaterniond mid_quat = start_quat;
-
   duration_ = 10.0;
 
-  trajectory_generator::VectorStateConstraint start_p_c{
-    0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-  trajectory_generator::VectorStateConstraint end_p_c{
-    duration_, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-  auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
+  // ====================================================
+  // ▼ LRST による軌道の最適化
+  // ====================================================
+  RCLCPP_INFO(this->get_logger(), "Set boundary conditions.");
+  lrst_optimizer_->setBoundaryConditions(start_pos, target_pos);
 
-  trajectory_generator::VectorStateConstraint mid_p_c{duration_ / 2.0, mid_pos};
-  trajectory_generator::addConstraint(pos_constraints, mid_p_c);
+  // 動かす遊脚(ee_frames_[1])の関節名を自動抽出
+  std::vector<std::string> swing_joint_names;
+  int joints_per_limb = num_joints_ / ee_frames_.size();
+  for (int i = 0; i < joints_per_limb; ++i) {
+    // pinocchioのモデルに合わせてインデックスを計算 (ベースの分+2を考慮)
+    swing_joint_names.push_back(robot_->getModel().names[2 + 1 * joints_per_limb + i]);
+  }
 
+  RCLCPP_INFO(this->get_logger(), "Set robot state.");
+  lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_joint_names);
+
+  ramp::lrst::OptimizationWeights weights;
+  weights.tf = duration_;
+  weights.step_height = 0.05;
+  weights.k_mom_lin_max = 1.0;
+  weights.k_mom_ang_max = 1.0;
+  weights.k_height_max = 100.0;
+  weights.k_height_ave = 100.0;
+  // NLoptの最適化を実行（※ここで数秒ブロッキングされます）
+  RCLCPP_INFO(this->get_logger(), "Optimizing trajectory...");
+  optimized_bezier_P_ = lrst_optimizer_->optimizeTrajectory(weights);
+
+  // ====================================================
+  // 姿勢(Orientation)の軌道生成はそのまま使用
   trajectory_generator::AngularStateConstraint start_o_c{
     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   trajectory_generator::AngularStateConstraint end_o_c{
     duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
-
-  trajectory_generator::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
-  trajectory_generator::addConstraint(ori_constraints, mid_o_c);
-
-  pos_spline_ = std::make_unique<trajectory_generator::VectorSpline>(pos_constraints, 3);
   ori_spline_ = std::make_unique<trajectory_generator::OrientationSpline>(ori_constraints);
 
   trajectory_start_time_ = this->now().seconds();
@@ -110,7 +178,10 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
     q(7 + i) = current_joint_pos_[i];
   }
 
-  Eigen::Vector3d v_world = pos_spline_->getVelocity(current_time);
+  // Eigen::Vector3d v_world = pos_spline_->getVelocity(current_time);
+  // Eigen::Vector3d w_world = ori_spline_->getAngularVelocity(current_time);
+  Eigen::Vector3d v_world =
+    lrst_optimizer_->computeBezierVelocity(current_time, optimized_bezier_P_);
   Eigen::Vector3d w_world = ori_spline_->getAngularVelocity(current_time);
 
   // 2. 遊脚手先(ee_frames_[1])の現在の姿勢(FK)を取得
@@ -161,8 +232,8 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
 
   // For debug (確認用)
   // 元々の H_b を使って、実際のシステム全体の運動量を再計算
-  Eigen::VectorXd L = H_b * md_cmd.base_velocity + H_bm * phi_dot_total;
-  std::cout << "L = " << L.transpose() << std::endl;
+  // Eigen::VectorXd L = H_b * md_cmd.base_velocity + H_bm * phi_dot_total;
+  // std::cout << "L = " << L.transpose() << std::endl;
 
   // --- 制御コマンドの生成とパブリッシュ ---
 
@@ -191,15 +262,32 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
+// std::vector<Eigen::Vector3d> RAMPControl::getPlannedPath()
+// {
+//   std::vector<Eigen::Vector3d> path;
+//   if (!pos_spline_) return path;
+
+//   double dt = 0.05;
+//   for (double t = 0; t <= duration_; t += dt) {
+//     path.push_back(pos_spline_->getPosition(t));
+//   }
+//   return path;
+// }
+
 std::vector<Eigen::Vector3d> RAMPControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
-  if (!pos_spline_) return path;
+
+  if (!lrst_optimizer_ || optimized_bezier_P_.cols() == 0) {
+    return path;
+  }
 
   double dt = 0.05;
   for (double t = 0; t <= duration_; t += dt) {
-    path.push_back(pos_spline_->getPosition(t));
+    path.push_back(lrst_optimizer_->computeBezierPosition(t, optimized_bezier_P_));
   }
+  path.push_back(lrst_optimizer_->computeBezierPosition(duration_, optimized_bezier_P_));
+
   return path;
 }
 

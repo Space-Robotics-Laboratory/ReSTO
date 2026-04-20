@@ -16,6 +16,7 @@
 #define RAMP__MD__LOW_REACTION_SWING_TRAJECTORY_HPP_
 
 #include <Eigen/Dense>
+#include <string>
 #include <vector>
 
 #include "ramp/visibility_control.h"
@@ -32,37 +33,39 @@ namespace lrst
 
 struct OptimizationWeights
 {
-  double k_mom_max = 1.0;
-  double k_mom_ave = 1.0;
+  double k_mom_lin_max = 1.0;
+  double k_mom_ang_max = 1.0;
   double k_height_max = 1.0;
+  double k_height_ave = 1.0;
+
   double step_height = 0.05;
+
   double dt = 0.01;  // 軌道計算のタイムステップ [s]
   double tf = 2.0;   // 遊脚の移動時間 [s]
 };
 
-class LowReactionSwingTrajectory
+class RAMP_PUBLIC LowReactionSwingTrajectory
 {
 public:
-  RAMP_PUBLIC
   explicit LowReactionSwingTrajectory(
     fbml::Kinematics * kinematics, fbml::Dynamics * dynamics, int num_joints, int num_limbs);
   virtual ~LowReactionSwingTrajectory() = default;
 
-  RAMP_PUBLIC
   /**
    * @brief 遊脚の反力（運動量変化）が最小となるベジェ曲線の制御点を計算する
    * @param initial_guess 最適化変数の初期値（ベジェ曲線のフリーな制御点パラメータ等）
    * @return 最適化された変数の配列
    */
-  std::vector<double> optimizeTrajectory(const OptimizationWeights & weights);
+  Eigen::MatrixXd optimizeTrajectory(const OptimizationWeights & weights);
 
-  RAMP_PUBLIC
   void setBoundaryConditions(const Eigen::Vector3d & start_pos, const Eigen::Vector3d & end_pos);
 
-  RAMP_PUBLIC
   void setRobotState(
     const Eigen::VectorXd & q_init, const std::string & swing_frame_name,
     const std::vector<std::string> & swing_joint_names);
+
+  Eigen::Vector3d computeBezierPosition(double t, const Eigen::MatrixXd & P) const;
+  Eigen::Vector3d computeBezierVelocity(double t, const Eigen::MatrixXd & P) const;
 
 private:
   // --- NLoptに渡すためのstaticラッパー関数 ---
@@ -70,7 +73,7 @@ private:
     const std::vector<double> & x, std::vector<double> & grad, void * data);
 
   // 7次ベジェ曲線の位置を計算するヘルパー関数
-  Eigen::Vector3d computeBezierPosition(double t, const Eigen::MatrixXd & P);
+  // Eigen::Vector3d computeBezierPosition(double t, const Eigen::MatrixXd & P);
 
   // --- 実際の評価関数（コスト計算） ---
   double computeCost(const std::vector<double> & x);
