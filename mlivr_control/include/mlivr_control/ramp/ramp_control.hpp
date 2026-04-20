@@ -53,13 +53,14 @@ private:
   std::unique_ptr<fbml::Kinematics> kinematics_;
   std::unique_ptr<fbml::Dynamics> dynamics_;
 
-  std::unique_ptr<ramp::md::MomentumDistribution> md_solver_;
-
   bool use_lrst_ = true;
   std::unique_ptr<ramp::lrst::LowReactionSwingTrajectory> lrst_optimizer_;
   ramp::lrst::SolverParams default_solver_params_;
   ramp::lrst::WeightParams default_weight_params_;
   Eigen::MatrixXd optimized_bezier_P_;
+
+  std::unique_ptr<ramp::md::MomentumDistribution> md_solver_;
+  double momentum_distribution_factor_ = 0.5;
 
   std::vector<double> target_joint_pos_;
 

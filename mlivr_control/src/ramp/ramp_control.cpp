@@ -43,12 +43,14 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
     this->declare_parameter<double>("weights.step_height_max", 1.0);
   default_weight_params_.step_height_ave =
     this->declare_parameter<double>("weights.step_height_ave", 1.0);
+  momentum_distribution_factor_ =
+    this->declare_parameter<double>("momentum_distribution_factor", 0.5);
 
   duration_ = default_solver_params_.step_duration;
 
-  md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
   lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(
     kinematics_.get(), dynamics_.get(), num_joints_, ee_frames_.size());
+  md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
 
   target_joint_pos_.resize(num_joints_, 0.0);
 
@@ -186,7 +188,7 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   Eigen::VectorXd L_swing_nom =
     H_bm * phi_dot_swing_nom;  // 1ステップ前ではなく、今のノミナル値を使う
 
-  double alpha = 1.0;  // FMD
+  double alpha = momentum_distribution_factor_;
 
   // ② 【重要】遊脚の連成運動量を考慮して、ベースの慣性行列を補正する
   Eigen::MatrixXd H_b_modified = H_b - alpha * H_bm * J_m_swing_pinv * J_b_swing;
