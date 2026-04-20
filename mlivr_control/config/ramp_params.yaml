@@ -2,7 +2,7 @@ mlivr_ramp:
   ros__parameters:
 
     # LRST
-    use_lrst: true
+    use_lrst: true # true/false
 
     solver:
       dt: 0.01
