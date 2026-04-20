@@ -51,11 +51,6 @@ public:
     fbml::Kinematics * kinematics, fbml::Dynamics * dynamics, int num_joints, int num_limbs);
   virtual ~LowReactionSwingTrajectory() = default;
 
-  /**
-   * @brief 遊脚の反力（運動量変化）が最小となるベジェ曲線の制御点を計算する
-   * @param initial_guess 最適化変数の初期値（ベジェ曲線のフリーな制御点パラメータ等）
-   * @return 最適化された変数の配列
-   */
   Eigen::MatrixXd optimizeTrajectory(const OptimizationWeights & weights);
 
   void setBoundaryConditions(const Eigen::Vector3d & start_pos, const Eigen::Vector3d & end_pos);
@@ -68,11 +63,9 @@ public:
   Eigen::Vector3d computeBezierVelocity(double t, const Eigen::MatrixXd & P) const;
 
 private:
-  // --- NLoptに渡すためのstaticラッパー関数 ---
   static double objectiveWrapper(
     const std::vector<double> & x, std::vector<double> & grad, void * data);
 
-  // --- 実際の評価関数（コスト計算） ---
   double computeCost(const std::vector<double> & x);
 
   OptimizationWeights current_weights_;

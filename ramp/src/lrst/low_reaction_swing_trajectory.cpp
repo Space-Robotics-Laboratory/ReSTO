@@ -23,7 +23,7 @@ namespace ramp
 namespace lrst
 {
 
-// 階乗(nCr)を計算するヘルパー関数（nchoosekに相当）
+// Helper function for calculating the factorial (nCr)
 double nChoosek(int n, int k)
 {
   if (k > n) return 0;
@@ -129,18 +129,15 @@ void LowReactionSwingTrajectory::setRobotState(
   swing_joint_names_ = swing_joint_names;
 }
 
-// staticラッパー関数
 double LowReactionSwingTrajectory::objectiveWrapper(
   const std::vector<double> & x, std::vector<double> & grad, void * data)
 {
-  // 今回使用するアルゴリズム（LN_BOBYQA）は勾配を必要としないため、
-  // grad は空（計算不要）の状態で呼ばれます。
+  // In the case of algorithms that do not require gradients (LN_BOBYQA), grad is called in an empty state (no computation required).
   if (!grad.empty()) {
-    // もし勾配が必要なアルゴリズム（LD_SLSQPなど）に変更した場合は、
-    // ここに自前で数値微分を計算する処理を書く必要があります。
+    // For algorithms that require a gradient (such as LD_SLSQP), you need to write code here to compute the numerical derivative yourself.
   }
 
-  // voidポインタをLowReactionSwingTrajectoryのインスタンスにキャストして、実際の計算関数を呼ぶ
+  // Cast void pointer to instance of LowReactionSwingTrajectory and call actual calculation function
   LowReactionSwingTrajectory * optimizer = static_cast<LowReactionSwingTrajectory *>(data);
   return optimizer->computeCost(x);
 }
@@ -167,7 +164,7 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierVelocity(
   int m = bezier_order_;
   if (t >= tf) return vel;
 
-  // ベジェ曲線の微分公式
+  // Differentiation formula for Bézier curves
   for (int i = 0; i <= m - 1; ++i) {
     double b = nChoosek(m - 1, i) * std::pow(t / tf, i) * std::pow((tf - t) / tf, m - 1 - i);
     vel += b * (static_cast<double>(m) / tf) * (P.col(i + 1) - P.col(i));
@@ -175,13 +172,12 @@ Eigen::Vector3d LowReactionSwingTrajectory::computeBezierVelocity(
   return vel;
 }
 
-// 実際の評価関数（MATLABの opt_function_low_reaction_bez に相当）
 double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
 {
-  // 1. 最適化変数 x (要素数6) を使って、ベジェ曲線の制御点行列 P (3x8) を完成させる
+  // Complete the Bézier curve control point matrix P (3x8) using the optimization variable x (6 elements)
   Eigen::MatrixXd P = bezier_base_matrix_;
-  P.col(3) = Eigen::Vector3d(x[0], x[1], x[2]);  // MATLABの AA(:,4) に相当
-  P.col(4) = Eigen::Vector3d(x[3], x[4], x[5]);  // MATLABの AA(:,5) に相当
+  P.col(3) = Eigen::Vector3d(x[0], x[1], x[2]);
+  P.col(4) = Eigen::Vector3d(x[3], x[4], x[5]);
 
   double tf = current_weights_.tf;
   double dt = current_weights_.dt;
@@ -196,34 +192,30 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
   double ground_z = P(2, 0);
 
   Eigen::VectorXd q_prev = q_init_;
-  Eigen::VectorXd q_dot_prev;
   Eigen::VectorXd L_prev = Eigen::VectorXd::Zero(6);
 
   pinocchio::SE3 initial_pose = kinematics_->solveFK(q_init_, swing_frame_name_);
   Eigen::Matrix3d R_des = initial_pose.rotation();
 
-  // 2. 離散時間ループ (MATLABの t = t0:dt:tf に相当)
+  // Discrete-time loop
   for (int i = 0; i < num_steps; ++i) {
     double t = i * dt;
     if (t > tf) t = tf;
 
-    // ベジェ曲線から目標手先位置を取得
     Eigen::Vector3d x_des = computeBezierPosition(t, P);
 
     double current_height = x_des.z() - ground_z;
     max_height = std::max(max_height, current_height);
     sum_height += current_height;
 
-    // ▼ 修正: 回転は初期姿勢のまま維持し、位置だけをベジェ曲線に従わせる
-    pinocchio::SE3 pose_des(R_des, x_des);
+    pinocchio::SE3 pose_des(R_des, x_des);  // Maintain rotation in the starting position
 
-    // IKを解く（q_prev を初期値として渡し、結果で上書きされる）
     Eigen::VectorXd q = q_prev;
     bool ik_success =
       kinematics_->solveNumericalIK(q, swing_frame_name_, pose_des, swing_joint_names_);
 
     if (!ik_success) {
-      return 1e9;  // ペナルティ
+      return 1e9;  // High penalty for kinematic infeasible pose
     }
 
     Eigen::VectorXd q_dot = Eigen::VectorXd::Zero(num_joints_);
@@ -234,31 +226,28 @@ double LowReactionSwingTrajectory::computeCost(const std::vector<double> & x)
     Eigen::MatrixXd H_b, H_bm;
     dynamics_->computePartitionedMassMatrices(q, H_b, H_bm);
 
-    // 遊脚の運動量 L を計算
+    // HACK: Momentum of the swing limb
     Eigen::VectorXd L = H_bm * q_dot;
 
     if (i > 0) {
-      // 運動量の微分 L_dot (＝反力/モーメント) を計算
+      // Differential of momentum
       Eigen::VectorXd L_dot = (L - L_prev) / dt;
 
-      double force_norm = L_dot.head<3>().norm();  // 並進反力のノルム (Ld_lin)
-      double moment_norm = L_dot.tail<3>().norm();
+      double force_norm = L_dot.head<3>().norm();   // Linear component of L_dot
+      double moment_norm = L_dot.tail<3>().norm();  // Angular component of L_dot
 
       max_force = std::max(max_force, force_norm);
       max_moment = std::max(max_moment, moment_norm);
       sum_force += force_norm;
     }
 
-    // 次のステップのための更新
     q_prev = q;
-    q_dot_prev = q_dot;
     L_prev = L;
   }
 
   double mean_force = sum_force / (num_steps - 1);
   double mean_height = sum_height / num_steps;
 
-  // 3. 評価関数の計算 (ペナルティの合算)
   double cost = current_weights_.k_mom_lin_max * max_force +
     current_weights_.k_mom_ang_max * max_moment +
     current_weights_.k_height_max * std::abs(current_weights_.step_height - max_height) +
