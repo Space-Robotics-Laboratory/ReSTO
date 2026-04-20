@@ -134,6 +134,24 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   }
 
   double current_time = this->now().seconds() - trajectory_start_time_;
+
+  double t_eval = std::min(current_time, duration_);
+
+  Eigen::Vector3d p_planned, p_target;
+  if (use_lrst_) {
+    p_planned = lrst_optimizer_->computeBezierPosition(t_eval, optimized_bezier_P_);
+    p_target = lrst_optimizer_->computeBezierPosition(duration_, optimized_bezier_P_);
+  } else {
+    p_planned = pos_spline_->getPosition(t_eval);
+    p_target = pos_spline_->getPosition(duration_);
+  }
+
+  Eigen::Quaterniond q_planned = ori_spline_->getOrientation(t_eval);
+  Eigen::Quaterniond q_target = ori_spline_->getOrientation(duration_);
+
+  this->publishTargetTF(p_planned, q_planned, "planned/" + ee_frames_[1]);
+  this->publishTargetTF(p_target, q_target, "target/" + ee_frames_[1]);
+
   if (current_time > duration_) {
     is_trajectory_active_ = false;
     RCLCPP_INFO(this->get_logger(), "Trajectory finished.");
