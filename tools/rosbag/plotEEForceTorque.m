@@ -16,10 +16,11 @@ clc; clear; close all;
 
 %% User settings
 
-type = "ramp-pmd075";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
-csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_21-13_48_31" + ".csv";
+type = "kj";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
+csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_04_06" + ".csv";
+% csv_file = "csv" + filesep + "to_rosbag2_2026_04_21-02_56_54" + ".csv";
 
-save_fig = true;  % true/false
+save_fig = false;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
@@ -37,12 +38,17 @@ data = readtable(csv_file);
 sim_start_time = data.x__time(1, 1);
 % time_vec = data.x__time - sim_start_time;
 
-%% Syncronise
+%% Synchronize
+
+trigger_raw = data.(matlab.lang.makeValidName("x_start_control_data"));
+t_trigger_idx = find(trigger_raw == 1, 1);
+t_trigger = data.x__time(t_trigger_idx);
 
 cmd_stamp_raw = data.(matlab.lang.makeValidName("x_joint_cmds_header_stamp"));
-ctrl_start_idx = find(~isnan(cmd_stamp_raw(:, 1)), 1) - 1;
-ctrl_start_time = data.x__time(ctrl_start_idx, 1);
-time_vec = data.x__time - ctrl_start_time;
+t_motion_idx = find(~isnan(cmd_stamp_raw(:, 1)), 1);
+t_motion = data.x__time(t_motion_idx);
+
+time_vec = data.x__time - t_trigger;
 
 %% Plot Force/Torque
 if (plot_ft)

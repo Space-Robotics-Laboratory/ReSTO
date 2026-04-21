@@ -5,3 +5,4 @@ ros2 bag record\
   /tf\
   /mlivr_sim/limb_1/ee_ft_sensor\
   /mlivr_sim/limb_2/ee_ft_sensor\
+  /start_control\
