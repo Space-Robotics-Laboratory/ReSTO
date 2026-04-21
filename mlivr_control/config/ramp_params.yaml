@@ -2,7 +2,7 @@ mlivr_ramp:
   ros__parameters:
 
     # LRST
-    use_lrst: true # true/false
+    use_lrst: false # true/false
 
     solver:
       dt: 0.01
@@ -18,4 +18,4 @@ mlivr_ramp:
       step_height_ave: 50.0
 
     # MD
-    momentum_distribution_factor: 0.75
+    momentum_distribution_factor: 1.0
