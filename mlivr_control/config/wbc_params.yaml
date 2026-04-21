@@ -19,4 +19,4 @@ mlivr_wbc:
 
       env_collision: 1e1
 
-      momentum_reg: 0.0
+      momentum_reg: 1e-2

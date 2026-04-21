@@ -108,14 +108,9 @@ bool WbcSolver::computeTrajectory(
 
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
 
-  // ==========================================================
-  // 【究極の無反動軌道】
-  // 全ホライズンを単一のフェーズで計算(ハード制約・衝撃モデルなし)
-  // ==========================================================
   for (int i = 0; i < T; ++i) {
     TaskPhase phase;
 
-    // limb_1 は常に初期位置をキープする (ソフト制約)
     phase.ee_tracking_targets[fixed_frame] = start_fixed_pose;
 
     if (i == T - 1) {
@@ -143,37 +138,26 @@ bool WbcSolver::computeTrajectory(
     double multiplier = 1.0;
     double s_vel = static_cast<double>(i) / std::max(T - 1, 1);
     if (s_vel < s_start) {
-      // ① 発進フェーズ
-      // ゼロ除算回避のため std::max を使用
       double ratio = (s_start - s_vel) / std::max(s_start, 1e-6);
       multiplier = 1.0 + (start_mult - 1.0) * (ratio * ratio);
     } else if (s_vel > s_brake) {
-      // ② 減速フェーズ
       double ratio = (s_vel - s_brake) / std::max(1.0 - s_brake, 1e-6);
       multiplier = 1.0 + (brake_mult - 1.0) * (ratio * ratio);
     } else {
-      // ③ 巡航フェーズ
       multiplier = 1.0;
     }
     params_.weights.ee_vel_damping = ee_vel_weight_default * multiplier;
 
-    // ==========================================================
-    // ★ 追加: 見えないハードル（アーチ）の計算
-    // ==========================================================
     double s = static_cast<double>(i) / (T - 1);
     double arch = 4.0 * s * (1.0 - s);
 
     phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
     phase.ee_z_lower_bounds[swing_frame] = start_swing_ee_z + (max_clearance * arch);
-    // ==========================================================
 
     auto model = createActionModel(x0, phase);
     running_models.push_back(model);
   }
 
-  // ==========================================================
-  // [Terminal] 終端モデル
-  // ==========================================================
   TaskPhase terminal_phase;
   terminal_phase.ee_tracking_targets[fixed_frame] = start_fixed_pose;
   terminal_phase.ee_tracking_targets[swing_frame] = target_swing_pose;
@@ -183,7 +167,7 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_frame] = target_swing_ee_z;
   params_.weights.control_reg = ctrl_reg_weight_default * ctrl_brake_mult * 2.0;
-  params_.weights.ee_vel_damping = ee_vel_weight_default * brake_mult * 1.0;
+  params_.weights.ee_vel_damping = ee_vel_weight_default * brake_mult * 2.0;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
@@ -372,8 +356,7 @@ void WbcSolver::addEnvironmentCollisionCost(
 
 void WbcSolver::addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostModelSum> & costs)
 {
-  // ベースと全関節の動きによって生じる空間全体の運動量(h = [linear, angular])を計算し、
-  // それがゼロ(Force::Zero)から変動しないようにペナルティを与える
+  // Penalty to keep total momentum about the robot's center of mass at zero
   auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
     state_, Eigen::VectorXd::Zero(6), actuation_->get_nu());
 
