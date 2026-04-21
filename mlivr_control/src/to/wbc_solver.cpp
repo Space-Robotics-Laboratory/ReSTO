@@ -53,8 +53,8 @@ WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverPar
 
 bool WbcSolver::computeTrajectory(
   const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
-  const std::vector<double> & current_joint_pos, const std::string & fixed_frame,
-  const std::string & swing_frame, const Eigen::Vector3d & world_translation_offset)
+  const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
+  const std::string & swing_ee_frame, const Eigen::Vector3d & world_translation_offset)
 {
   std::cout << "[WbcSolver] === Starting Trajectory Optimization ===" << std::endl;
 
@@ -75,69 +75,72 @@ bool WbcSolver::computeTrajectory(
   pinocchio::forwardKinematics(*model_ptr_, *data_ptr_, q);
   pinocchio::updateFramePlacements(*model_ptr_, *data_ptr_);
 
-  pinocchio::FrameIndex fixed_id = model_ptr_->getFrameId(fixed_frame);
-  pinocchio::FrameIndex swing_id = model_ptr_->getFrameId(swing_frame);
+  pinocchio::FrameIndex sup_ee_id = model_ptr_->getFrameId(support_ee_frame);
+  pinocchio::FrameIndex sw_ee_id = model_ptr_->getFrameId(swing_ee_frame);
 
-  pinocchio::SE3 start_fixed_pose = data_ptr_->oMf[fixed_id];  // in world frame
-  pinocchio::SE3 start_swing_pose = data_ptr_->oMf[swing_id];  // in world frame
-
-  double start_fixed_ee_z = start_fixed_pose.translation().z();
-  double start_swing_ee_z = start_swing_pose.translation().z();
-
-  pinocchio::SE3 target_swing_pose = start_swing_pose;  // in world frame
+  pinocchio::SE3 start_sup_ee_pose = data_ptr_->oMf[sup_ee_id];  // in world frame
+  pinocchio::SE3 start_sw_ee_pose = data_ptr_->oMf[sw_ee_id];    // in world frame
+  pinocchio::SE3 target_swing_pose = start_sw_ee_pose;           // in world frame
   target_swing_pose.translation() += world_translation_offset;
 
-  double target_swing_ee_z = target_swing_pose.translation().z();
-
-  int T = params_.solver.horizon_steps;
+  double start_sup_ee_z = start_sup_ee_pose.translation().z();
+  double start_sw_ee_z = start_sw_ee_pose.translation().z();
+  double target_sw_ee_z = target_swing_pose.translation().z();
 
   double ctrl_reg_weight_default = params_.weights.control_reg;
-
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
 
   double max_clearance = 0.05;
+
+  int T = params_.solver.horizon_steps;
+
+  // === Running Model ===
 
   std::vector<std::shared_ptr<crocoddyl::ActionModelAbstract>> running_models;
 
   for (int i = 0; i < T; ++i) {
     TaskPhase phase;
 
-    phase.ee_tracking_targets[fixed_frame] = start_fixed_pose;
-
+    phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
     if (i == T - 1) {
-      phase.ee_tracking_targets[swing_frame] = target_swing_pose;
+      phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
     }
-
-    // phase.collision_frames = {fixed_frame, swing_frame};
-    phase.collision_frames = {swing_frame};
-
-    phase.support_limbs = {fixed_frame};
+    // phase.collision_frames = {support_ee_frame, swing_ee_frame};
+    phase.collision_frames = {swing_ee_frame};
+    phase.support_limbs = {support_ee_frame};
 
     double s = static_cast<double>(i) / (T - 1);
     double arch = 4.0 * s * (1.0 - s);
 
-    phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
-    phase.ee_z_lower_bounds[swing_frame] = start_swing_ee_z + (max_clearance * arch);
+    phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
+    phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z + (max_clearance * arch);
 
-    params_.weights.control_reg = ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
-    params_.weights.ee_vel_damping = ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
+    params_.weights.control_reg =
+      ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
+    params_.weights.ee_vel_damping =
+      ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
 
-    auto model = createActionModel(x0, phase);
-    running_models.push_back(model);
+    running_models.push_back(createActionModel(x0, phase));
   }
 
+  // === Terminal Model ===
+
   TaskPhase terminal_phase;
-  terminal_phase.ee_tracking_targets[fixed_frame] = start_fixed_pose;
-  terminal_phase.ee_tracking_targets[swing_frame] = target_swing_pose;
-  // terminal_phase.collision_frames = {fixed_frame, swing_frame};
-  terminal_phase.collision_frames = {swing_frame};
-  terminal_phase.support_limbs = {fixed_frame};
-  terminal_phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
-  terminal_phase.ee_z_lower_bounds[swing_frame] = target_swing_ee_z;
-  params_.weights.control_reg = ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
-  params_.weights.ee_vel_damping = ee_vel_weight_default * params_.ee_vel_schedule.decel_multi * 2.0;
+  terminal_phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
+  terminal_phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
+  // terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
+  terminal_phase.collision_frames = {swing_ee_frame};
+  terminal_phase.support_limbs = {support_ee_frame};
+  terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
+  terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
+  params_.weights.control_reg =
+    ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
+  params_.weights.ee_vel_damping =
+    ee_vel_weight_default * params_.ee_vel_schedule.decel_multi * 2.0;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
+
+  //=======================
 
   auto problem = std::make_shared<crocoddyl::ShootingProblem>(x0, running_models, terminal_model);
   crocoddyl::SolverFDDP solver(problem);

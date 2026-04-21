@@ -53,7 +53,8 @@ struct WeightParams
   double momentum_reg = 0.0;
 };
 
-struct WeightScheduleParams {
+struct WeightScheduleParams
+{
   double s_accel = 0.2;
   double s_decel = 0.8;
   double accel_multi = 5.0;
@@ -93,8 +94,8 @@ public:
 
   bool computeTrajectory(
     const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
-    const std::vector<double> & current_joint_pos, const std::string & fixed_frame,
-    const std::string & swing_frame, const Eigen::Vector3d & world_translation_offset);
+    const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
+    const std::string & swing_ee_frame, const Eigen::Vector3d & world_translation_offset);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
