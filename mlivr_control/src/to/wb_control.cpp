@@ -37,14 +37,22 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
   params.weights.env_collision = this->declare_parameter<double>("weights.env_collision");
   params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
 
-  params.ctrl_reg_schedule.s_accel = this->declare_parameter<double>("weight_schedules.ctrl_reg.s_accel");
-  params.ctrl_reg_schedule.s_decel = this->declare_parameter<double>("weight_schedules.ctrl_reg.s_decel");
-  params.ctrl_reg_schedule.accel_multi = this->declare_parameter<double>("weight_schedules.ctrl_reg.accel_multi");
-  params.ctrl_reg_schedule.decel_multi = this->declare_parameter<double>("weight_schedules.ctrl_reg.decel_multi");
-  params.ee_vel_schedule.s_accel = this->declare_parameter<double>("weight_schedules.ee_vel.s_accel");
-  params.ee_vel_schedule.s_decel = this->declare_parameter<double>("weight_schedules.ee_vel.s_decel");
-  params.ee_vel_schedule.accel_multi = this->declare_parameter<double>("weight_schedules.ee_vel.accel_multi");
-  params.ee_vel_schedule.decel_multi = this->declare_parameter<double>("weight_schedules.ee_vel.decel_multi");
+  params.ctrl_reg_schedule.s_accel =
+    this->declare_parameter<double>("weight_schedules.ctrl_reg.s_accel");
+  params.ctrl_reg_schedule.s_decel =
+    this->declare_parameter<double>("weight_schedules.ctrl_reg.s_decel");
+  params.ctrl_reg_schedule.accel_multi =
+    this->declare_parameter<double>("weight_schedules.ctrl_reg.accel_multi");
+  params.ctrl_reg_schedule.decel_multi =
+    this->declare_parameter<double>("weight_schedules.ctrl_reg.decel_multi");
+  params.ee_vel_schedule.s_accel =
+    this->declare_parameter<double>("weight_schedules.ee_vel.s_accel");
+  params.ee_vel_schedule.s_decel =
+    this->declare_parameter<double>("weight_schedules.ee_vel.s_decel");
+  params.ee_vel_schedule.accel_multi =
+    this->declare_parameter<double>("weight_schedules.ee_vel.accel_multi");
+  params.ee_vel_schedule.decel_multi =
+    this->declare_parameter<double>("weight_schedules.ee_vel.decel_multi");
 
   params.ee_frames = ee_frames_;
   // ========================
@@ -96,21 +104,27 @@ Eigen::VectorXd WBControl::computeCommandStep()
   const auto & optimized_xs = wbc_solver_->getOptimizedXs();
   const auto & optimized_us = wbc_solver_->getOptimizedUs();
 
-  if (optimized_xs.empty() || playback_idx_ >= optimized_xs.size()) {
+  if (optimized_xs.empty()) {
     return Eigen::VectorXd::Zero(1);
   }
+
+  bool is_finished = (playback_idx_ >= optimized_xs.size() - 1);
+  size_t current_idx = is_finished ? (optimized_xs.size() - 1) : playback_idx_;
 
   sensor_msgs::msg::JointState cmd_msg;
   cmd_msg.header.stamp = this->now();
 
-  Eigen::VectorXd q_des = optimized_xs[playback_idx_].segment(7, num_joints_);
-  Eigen::VectorXd v_des = optimized_xs[playback_idx_].segment(model_ptr_->nv + 6, num_joints_);
+  Eigen::VectorXd q_des = optimized_xs[current_idx].segment(7, num_joints_);
 
+  Eigen::VectorXd v_des(num_joints_);
   Eigen::VectorXd tau_opt(num_joints_);
-  if (playback_idx_ < optimized_us.size()) {
-    tau_opt = optimized_us[playback_idx_];
-  } else {
+
+  if (is_finished) {
+    v_des = Eigen::VectorXd::Zero(num_joints_);
     tau_opt = Eigen::VectorXd::Zero(num_joints_);
+  } else {
+    v_des = optimized_xs[current_idx].segment(model_ptr_->nv + 6, num_joints_);
+    tau_opt = optimized_us[current_idx];
   }
 
   for (int i = 0; i < num_joints_; ++i) {
@@ -122,13 +136,15 @@ Eigen::VectorXd WBControl::computeCommandStep()
 
   cmd_pub_->publish(cmd_msg);
 
-  Eigen::VectorXd current_planned_q = optimized_xs[playback_idx_].head(model_ptr_->nq);
+  Eigen::VectorXd current_planned_q = optimized_xs[current_idx].head(model_ptr_->nq);
   publishPlannedRobotState(current_planned_q);
 
   Eigen::Quaterniond q_target(target_ee_pose_se3_.rotation());
   this->publishTargetTF(target_ee_pose_se3_.translation(), q_target, "target/" + ee_frames_[1]);
 
-  playback_idx_++;
+  if (!is_finished) {
+    playback_idx_++;
+  }
 
   return Eigen::VectorXd::Zero(1);
 }

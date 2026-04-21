@@ -16,8 +16,8 @@ clc; clear; close all;
 
 %% User settings
 
-type = "kj";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
-csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_04_06" + ".csv";
+type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
+csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
 % csv_file = "csv" + filesep + "to_rosbag2_2026_04_21-02_56_54" + ".csv";
 
 save_fig = false;  % true/false
@@ -48,7 +48,11 @@ cmd_stamp_raw = data.(matlab.lang.makeValidName("x_joint_cmds_header_stamp"));
 t_motion_idx = find(~isnan(cmd_stamp_raw(:, 1)), 1);
 t_motion = data.x__time(t_motion_idx);
 
-time_vec = data.x__time - t_trigger;
+delay = t_motion - t_trigger;
+fprintf('--- \nComputation Delay (Dead Time): %.4f [s]\n', delay);
+
+% time_vec = data.x__time - t_trigger;
+time_vec = data.x__time - t_motion;
 
 %% Plot Force/Torque
 if (plot_ft)
@@ -127,7 +131,9 @@ if (plot_ee_error)
   time_plot = time_actual_rel(mask_actual);
   actual_pos_synced = actual_pos(mask_actual, :);
 
-  planned_pos_interp = interp1(time_planned_rel, planned_pos, time_plot, 'linear', 'extrap');
+  % planned_pos_interp = interp1(time_planned_rel, planned_pos, time_plot, 'linear', 'extrap');
+  time_plot_clamped = min(time_plot, max(time_planned_rel));
+  planned_pos_interp = interp1(time_planned_rel, planned_pos, time_plot_clamped, 'linear', 'extrap');
 
   error_vec = actual_pos_synced - planned_pos_interp;
   error_norm = vecnorm(error_vec, 2, 2);
