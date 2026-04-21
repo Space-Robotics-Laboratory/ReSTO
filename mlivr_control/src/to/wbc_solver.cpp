@@ -24,6 +24,7 @@
 #include <crocoddyl/core/solvers/fddp.hpp>
 #include <crocoddyl/core/utils/callbacks.hpp>
 #include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
+#include <crocoddyl/multibody/actions/free-fwddyn.hpp>
 #include <crocoddyl/multibody/actions/impulse-fwddyn.hpp>
 #include <crocoddyl/multibody/contacts/contact-6d.hpp>
 #include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
@@ -163,7 +164,7 @@ bool WbcSolver::computeTrajectory(
 std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   const Eigen::VectorXd & x0, const TaskPhase & phase)
 {
-  auto contacts = std::make_shared<crocoddyl::ContactModelMultiple>(state_, actuation_->get_nu());
+  // auto contacts = std::make_shared<crocoddyl::ContactModelMultiple>(state_, actuation_->get_nu());
   auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, actuation_->get_nu());
 
   // === Costs ===
@@ -181,8 +182,10 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   addMomentumRegularizationCost(costs);
 
   // Differential-Algebraic Model (DAM)
-  auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
-    state_, actuation_, contacts, costs, 0.0, true);
+  // auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
+  //   state_, actuation_, contacts, costs, 0.0, true);
+  auto dmodel =
+    std::make_shared<crocoddyl::DifferentialActionModelFreeFwdDynamics>(state_, actuation_, costs);
 
   // Integrated Atmospheric Model (IAM) (Computing the state one step ahead using Euler integration)
   return std::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, params_.solver.dt);
