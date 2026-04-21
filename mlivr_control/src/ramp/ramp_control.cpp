@@ -179,50 +179,27 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
   Eigen::Matrix3d R_world_to_local = pose_swing.rotation().transpose();
 
   // 3. 速度をLocal座標系に変換
-  Eigen::VectorXd x_dot_swing_des = Eigen::VectorXd::Zero(6);
-  x_dot_swing_des.head(3) = R_world_to_local * v_world;
-  x_dot_swing_des.tail(3) = R_world_to_local * w_world;
+  Eigen::VectorXd v_ee_sw_des = Eigen::VectorXd::Zero(6);
+  v_ee_sw_des.head(3) = R_world_to_local * v_world;
+  v_ee_sw_des.tail(3) = R_world_to_local * w_world;
 
   Eigen::MatrixXd J_sup = kinematics_->computeJacobian(q, ee_frames_[0]);
-  Eigen::MatrixXd J_swing = kinematics_->computeJacobian(q, ee_frames_[1]);
-
   Eigen::MatrixXd J_b_sup = J_sup.block(0, 0, 6, 6);
   Eigen::MatrixXd J_m_sup = J_sup.block(0, 6, 6, num_joints_);
 
-  Eigen::MatrixXd J_b_swing = J_swing.block(0, 0, 6, 6);
-  Eigen::MatrixXd J_m_swing = J_swing.block(0, 6, 6, num_joints_);
+  Eigen::MatrixXd J_sw = kinematics_->computeJacobian(q, ee_frames_[1]);
+  Eigen::MatrixXd J_b_sw = J_sw.block(0, 0, 6, 6);
+  Eigen::MatrixXd J_m_sw = J_sw.block(0, 6, 6, num_joints_);
 
   Eigen::MatrixXd H_b, H_bm;
   dynamics_->computePartitionedMassMatrices(q, H_b, H_bm);
 
   // --- RAMP-MD による計算フロー ---
 
-  // ① ベース固定と仮定した「ノミナル」な遊脚の関節速度と運動量を計算
-  Eigen::MatrixXd J_m_swing_pinv = J_m_swing.completeOrthogonalDecomposition().pseudoInverse();
-  Eigen::VectorXd phi_dot_swing_nom = J_m_swing_pinv * x_dot_swing_des;
-  Eigen::VectorXd L_swing_nom =
-    H_bm * phi_dot_swing_nom;  // 1ステップ前ではなく、今のノミナル値を使う
+  auto md_cmd = md_solver_->computeVelocities(
+    H_b, H_bm, J_b_sup, J_m_sup, J_b_sw, J_m_sw, v_ee_sw_des, momentum_distribution_factor_);
 
-  double alpha = momentum_distribution_factor_;
-
-  // ② 【重要】遊脚の連成運動量を考慮して、ベースの慣性行列を補正する
-  Eigen::MatrixXd H_b_modified = H_b - alpha * H_bm * J_m_swing_pinv * J_b_swing;
-
-  // ③ 補正した慣性行列 H_b_modified と ノミナル運動量 L_swing_nom を使ってMDソルバーを呼ぶ
-  auto md_cmd =
-    md_solver_->computeVelocities(H_b_modified, H_bm, J_b_sup, J_m_sup, L_swing_nom, alpha);
-
-  // ④ 算出されたベース速度を使って、遊脚の「実際の」関節角速度を計算
-  Eigen::VectorXd phi_dot_swing_real =
-    J_m_swing_pinv * (x_dot_swing_des - J_b_swing * md_cmd.base_velocity);
-
-  // ⑤ 最終的な全身の関節角速度ベクトルを合成
-  Eigen::VectorXd phi_dot_total = md_cmd.support_limb_joint_velocities + phi_dot_swing_real;
-
-  // For debug (確認用)
-  // 元々の H_b を使って、実際のシステム全体の運動量を再計算
-  // Eigen::VectorXd L = H_b * md_cmd.base_velocity + H_bm * phi_dot_total;
-  // std::cout << "L = " << L.transpose() << std::endl;
+  Eigen::VectorXd dq_ref = md_cmd.joint_velocities;
 
   // --- 制御コマンドの生成とパブリッシュ ---
 
@@ -235,19 +212,16 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
 
   for (int i = 0; i < num_joints_; ++i) {
     // 速度指令値からオイラー積分して目標角度を更新
-    target_joint_pos_[i] += phi_dot_total(i) * dt;
+    target_joint_pos_[i] += dq_ref(i) * dt;
 
     cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position[i] = target_joint_pos_[i];
-    cmd_msg.velocity[i] = phi_dot_total(i);
-    // cmd_msg.velocity.push_back(0.0);
+    cmd_msg.velocity[i] = dq_ref(i);
     cmd_msg.effort.push_back(0.0);
   }
 
-  // JointStateパブリッシュ
   cmd_pub_->publish(cmd_msg);
 
-  // return phi_dot_total;
   return Eigen::VectorXd::Zero(1);
 }
 
