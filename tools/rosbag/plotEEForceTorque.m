@@ -16,20 +16,10 @@ clc; clear; close all;
 
 %% User settings
 
-% Kinematic Jacobian
-% csv_file = "csv" + filesep + "kj" + filesep + "rosbag2_2026_04_21-02_42_17" + ".csv";
-% Generalized Jacobian
-% csv_file = "csv" + filesep + "gj" + filesep + "rosbag2_2026_04_21-02_45_25" + ".csv";
-% LRST
-% csv_file = "csv" + filesep + "lrst" + filesep + "rosbag2_2026_04_21-02_48_14" + ".csv";
-% RAMP-PMD
-% csv_file = "csv" + filesep + "ramp" + filesep + "pmd" + filesep + "rosbag2_2026_04_21-02_51_33" + ".csv";
-% RAMP-FMD
-% csv_file = "csv" + filesep + "ramp" + filesep + "fmd" + filesep + "rosbag2_2026_04_21-02_54_18" + ".csv";
-% Trajectory Optimization
-csv_file = "csv" + filesep + "to" + filesep + "rosbag2_2026_04_21-02_56_54" + ".csv";
+type = "ramp-pmd075";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
+csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_21-13_48_31" + ".csv";
 
-save_fig = false;  % true/false
+save_fig = true;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
