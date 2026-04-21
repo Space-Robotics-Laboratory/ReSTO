@@ -92,17 +92,8 @@ bool WbcSolver::computeTrajectory(
   int T = params_.solver.horizon_steps;
 
   double ctrl_reg_weight_default = params_.weights.control_reg;
-  double s_ctrl_start = 0.1;
-  double s_ctrl_brake = 0.9;
-  double ctrl_start_mult = 5.0;
-  double ctrl_brake_mult = 20.0;
 
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
-  // TODO: Parameterize
-  double s_start = 0.2;
-  double s_brake = 0.6;
-  double start_mult = 5.0;
-  double brake_mult = 20.0;
 
   double max_clearance = 0.05;
 
@@ -122,37 +113,14 @@ bool WbcSolver::computeTrajectory(
 
     phase.support_limbs = {fixed_frame};
 
-    double mult_ctrl = 1.0;
-    double s_ctrl = static_cast<double>(i) / std::max(T - 1, 1);
-    if (s_ctrl < s_ctrl_start) {
-      double ratio = (s_ctrl_start - s_ctrl) / std::max(s_ctrl_start, 1e-6);
-      mult_ctrl = 1.0 + (ctrl_start_mult - 1.0) * (ratio * ratio);
-    } else if (s_ctrl > s_ctrl_brake) {
-      double ratio = (s_ctrl - s_ctrl_brake) / std::max(1.0 - s_ctrl_brake, 1e-6);
-      mult_ctrl = 1.0 + (ctrl_brake_mult - 1.0) * (ratio * ratio);
-    } else {
-      mult_ctrl = 1.0;
-    }
-    params_.weights.control_reg = ctrl_reg_weight_default * mult_ctrl;
-
-    double multiplier = 1.0;
-    double s_vel = static_cast<double>(i) / std::max(T - 1, 1);
-    if (s_vel < s_start) {
-      double ratio = (s_start - s_vel) / std::max(s_start, 1e-6);
-      multiplier = 1.0 + (start_mult - 1.0) * (ratio * ratio);
-    } else if (s_vel > s_brake) {
-      double ratio = (s_vel - s_brake) / std::max(1.0 - s_brake, 1e-6);
-      multiplier = 1.0 + (brake_mult - 1.0) * (ratio * ratio);
-    } else {
-      multiplier = 1.0;
-    }
-    params_.weights.ee_vel_damping = ee_vel_weight_default * multiplier;
-
     double s = static_cast<double>(i) / (T - 1);
     double arch = 4.0 * s * (1.0 - s);
 
     phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
     phase.ee_z_lower_bounds[swing_frame] = start_swing_ee_z + (max_clearance * arch);
+
+    params_.weights.control_reg = ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
+    params_.weights.ee_vel_damping = ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
 
     auto model = createActionModel(x0, phase);
     running_models.push_back(model);
@@ -166,8 +134,8 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.support_limbs = {fixed_frame};
   terminal_phase.ee_z_lower_bounds[fixed_frame] = start_fixed_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_frame] = target_swing_ee_z;
-  params_.weights.control_reg = ctrl_reg_weight_default * ctrl_brake_mult * 2.0;
-  params_.weights.ee_vel_damping = ee_vel_weight_default * brake_mult * 2.0;
+  params_.weights.control_reg = ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
+  params_.weights.ee_vel_damping = ee_vel_weight_default * params_.ee_vel_schedule.decel_multi * 2.0;
 
   auto terminal_model = createActionModel(x0, terminal_phase);
 
@@ -363,6 +331,18 @@ void WbcSolver::addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostMod
   costs->addCost(
     "momentum_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual),
     params_.weights.momentum_reg);
+}
+
+double WbcSolver::computeWeightMultiplier(double s, const WeightScheduleParams & sched)
+{
+  if (s < sched.s_accel) {
+    double ratio = (sched.s_accel - s) / std::max(sched.s_accel, 1e-6);
+    return 1.0 + (sched.accel_multi - 1.0) * (ratio * ratio);
+  } else if (s > sched.s_decel) {
+    double ratio = (s - sched.s_decel) / std::max(1.0 - sched.s_decel, 1e-6);
+    return 1.0 + (sched.decel_multi - 1.0) * (ratio * ratio);
+  }
+  return 1.0;
 }
 
 }  // namespace mlivr_control

@@ -53,10 +53,20 @@ struct WeightParams
   double momentum_reg = 0.0;
 };
 
+struct WeightScheduleParams {
+  double s_accel = 0.2;
+  double s_decel = 0.8;
+  double accel_multi = 5.0;
+  double decel_multi = 20.0;
+};
+
 struct WbcSolverParams
 {
   SolverParams solver;
   WeightParams weights;
+
+  WeightScheduleParams ctrl_reg_schedule;
+  WeightScheduleParams ee_vel_schedule;
 
   std::vector<std::string> ee_frames;
 };
@@ -109,6 +119,8 @@ private:
     std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase);
 
   void addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+
+  double computeWeightMultiplier(double s, const WeightScheduleParams & sched);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::shared_ptr<pinocchio::Data> data_ptr_;

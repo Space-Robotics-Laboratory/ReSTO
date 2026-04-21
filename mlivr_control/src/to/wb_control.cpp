@@ -21,11 +21,12 @@ namespace mlivr_control
 
 WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_control", options)
 {
-  // ROS 2 parameters
+  // === ROS 2 parameters ===
   WbcSolverParams params;
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
   params.solver.max_iter = this->declare_parameter<int>("solver.max_iter");
+
   params.weights.state_reg = this->declare_parameter<double>("weights.state_reg");
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");
@@ -35,7 +36,18 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
   params.weights.ee_vel_damping = this->declare_parameter<double>("weights.ee_vel_damping");
   params.weights.env_collision = this->declare_parameter<double>("weights.env_collision");
   params.weights.momentum_reg = this->declare_parameter<double>("weights.momentum_reg");
+
+  params.ctrl_reg_schedule.s_accel = this->declare_parameter<double>("weight_schedules.ctrl_reg.s_accel");
+  params.ctrl_reg_schedule.s_decel = this->declare_parameter<double>("weight_schedules.ctrl_reg.s_decel");
+  params.ctrl_reg_schedule.accel_multi = this->declare_parameter<double>("weight_schedules.ctrl_reg.accel_multi");
+  params.ctrl_reg_schedule.decel_multi = this->declare_parameter<double>("weight_schedules.ctrl_reg.decel_multi");
+  params.ee_vel_schedule.s_accel = this->declare_parameter<double>("weight_schedules.ee_vel.s_accel");
+  params.ee_vel_schedule.s_decel = this->declare_parameter<double>("weight_schedules.ee_vel.s_decel");
+  params.ee_vel_schedule.accel_multi = this->declare_parameter<double>("weight_schedules.ee_vel.accel_multi");
+  params.ee_vel_schedule.decel_multi = this->declare_parameter<double>("weight_schedules.ee_vel.decel_multi");
+
   params.ee_frames = ee_frames_;
+  // ========================
 
   model_ptr_ = std::make_shared<pinocchio::Model>(robot_->getModel());
   wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
