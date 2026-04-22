@@ -47,8 +47,7 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   // LRST
-  lrst_optimizer_ =
-    std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(num_joints_, ee_frames_.size());
+  lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(num_joints_);
 
   lrst_optimizer_->setIKSolverCallback(
     [this](Eigen::VectorXd & q_inout, const Eigen::Isometry3d & pose_des) -> bool {
