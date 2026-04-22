@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/kj/kj_control.hpp"
+#include "mlivr_control/gj_control.hpp"
 
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -20,16 +20,17 @@
 namespace mlivr_control
 {
 
-KJControl::KJControl(const rclcpp::NodeOptions & options) : BaseController("kj_control", options)
+GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_control", options)
 {
   kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
+  dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   target_joint_pos_.resize(num_joints_, 0.0);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
-bool KJControl::generateTrajectory()
+bool GJControl::generateTrajectory()
 {
   int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
@@ -82,7 +83,7 @@ bool KJControl::generateTrajectory()
   return true;
 }
 
-Eigen::VectorXd KJControl::computeCommandStep()
+Eigen::VectorXd GJControl::computeCommandStep()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
 
@@ -97,24 +98,19 @@ Eigen::VectorXd KJControl::computeCommandStep()
   std::string frame_R = ee_frames_[1];
 
   pinocchio::SE3 pose_L, pose_R;
-  Eigen::MatrixXd J_full_L, J_full_R;
-
+  Eigen::MatrixXd J_gen_L, J_gen_R;
   try {
     pose_L = kinematics_->solveFK(q, frame_L);
+    J_gen_L = dynamics_->computeGeneralizedJacobian(q, frame_L);
     pose_R = kinematics_->solveFK(q, frame_R);
-
-    J_full_L = kinematics_->computeJacobian(q, frame_L);
-    J_full_R = kinematics_->computeJacobian(q, frame_R);
+    J_gen_R = dynamics_->computeGeneralizedJacobian(q, frame_R);
   } catch (const std::exception & e) {
     RCLCPP_ERROR_ONCE(this->get_logger(), "Error: %s", e.what());
     return Eigen::VectorXd::Zero(1);
   }
 
-  Eigen::MatrixXd J_std_L = J_full_L.block(0, 6, 6, num_joints_);
-  Eigen::MatrixXd J_std_R = J_full_R.block(0, 6, 6, num_joints_);
-
   Eigen::MatrixXd J_stacked(12, num_joints_);
-  J_stacked << J_std_L, J_std_R;
+  J_stacked << J_gen_L, J_gen_R;
 
   Eigen::VectorXd v_target_local_L = Eigen::VectorXd::Zero(6);
   Eigen::VectorXd v_target_local_R = Eigen::VectorXd::Zero(6);
@@ -149,8 +145,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
   v_stacked.head<6>() = v_target_local_L;
   v_stacked.tail<6>() = v_target_local_R;
 
-  // 3. 疑似逆行列 (Damped Least Squares) による関節速度の計算
-  // double lambda = 0.0;  // Damping term for singularity avoidance
+  // double lambda = 0.0;
   // Eigen::MatrixXd A =
   //   J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
   // Eigen::VectorXd q_dot_cmd_all = J_stacked.transpose() * A.inverse() * v_stacked;
@@ -174,7 +169,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
-std::vector<Eigen::Vector3d> KJControl::getPlannedPath()
+std::vector<Eigen::Vector3d> GJControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
   if (!pos_spline_) return path;
@@ -188,4 +183,4 @@ std::vector<Eigen::Vector3d> KJControl::getPlannedPath()
 
 }  // namespace mlivr_control
 
-RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::KJControl)
+RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::GJControl)

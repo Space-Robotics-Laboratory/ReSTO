@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/to/wbc_solver.hpp"
+#include "mlivr_control/wbc_solver.hpp"
 
 #include <iostream>
 

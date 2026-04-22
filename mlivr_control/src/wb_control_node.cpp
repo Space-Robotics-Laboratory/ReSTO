@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/gj/gj_control.hpp"
+#include "mlivr_control/wb_control.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor exec;
 
-  const auto gj_control = std::make_shared<mlivr_control::GJControl>(rclcpp::NodeOptions());
+  const auto wb_control = std::make_shared<mlivr_control::WBControl>(rclcpp::NodeOptions());
 
-  exec.add_node(gj_control);
+  exec.add_node(wb_control);
   exec.spin();
 
   return 0;

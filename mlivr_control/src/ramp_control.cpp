@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/ramp/ramp_control.hpp"
+#include "mlivr_control/ramp_control.hpp"
 
 #include <Eigen/QR>
 

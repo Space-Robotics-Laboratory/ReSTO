@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/to/wb_control.hpp"
+#include "mlivr_control/ramp_control.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor exec;
 
-  const auto wb_control = std::make_shared<mlivr_control::WBControl>(rclcpp::NodeOptions());
+  const auto ramp_control = std::make_shared<mlivr_control::RAMPControl>(rclcpp::NodeOptions());
 
-  exec.add_node(wb_control);
+  exec.add_node(ramp_control);
   exec.spin();
 
   return 0;

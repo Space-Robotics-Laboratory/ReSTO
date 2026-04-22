@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/kj/kj_control.hpp"
+#include "mlivr_control/kj_control.hpp"
 
 int main(int argc, char * argv[])
 {
