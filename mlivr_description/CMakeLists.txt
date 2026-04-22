@@ -7,6 +7,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 install(
   DIRECTORY
@@ -15,6 +17,17 @@ install(
     urdf
   DESTINATION
     share/${PROJECT_NAME}/
+)
+
+add_executable(env_visualizer src/env_visualizer.cpp)
+ament_target_dependencies(env_visualizer
+  rclcpp
+  visualization_msgs
+)
+
+install(TARGETS
+  env_visualizer
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

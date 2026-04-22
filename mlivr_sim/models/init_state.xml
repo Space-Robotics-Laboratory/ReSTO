@@ -1,8 +1,11 @@
 <mujoco model="init_state">
 
   <equality>
-    <weld site1="limb_1_gripper_site" site2="handrail_2_site_1" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/>
+    <!-- <weld site1="limb_1_gripper_site" site2="handrail_2_site_1" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/> -->
     <!-- <weld site1="limb_2_gripper_site" site2="handrail_1_site_4" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/> -->
+
+    <weld site1="limb_1_gripper_site" site2="seattrack_2_site_2" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/>
+    <!-- <weld site1="limb_2_gripper_site" site2="seattrack_1_site_2" solref="0.05 1" solimp="0.95 0.99 0.001 0.1 5" torquescale="10"/> -->
   </equality>
 
   <keyframe>
@@ -12,10 +15,17 @@
                                      0 -1.57 0 0 0 0"/>
   </keyframe>
 
-  <keyframe>
+  <!-- <keyframe>
     <key name="init_grasp" qpos="0.02 0.1 1
                                  1 0 0 0
                                  -0.261925 -0.942603 1.82154 -0.878936 1.30886 1.5708 -0.261919 -1.03989 1.79792 -0.758034 1.30888 -1.57079 "/>
+  </keyframe> -->
+
+  <keyframe>
+    <key name="init_grasp" qpos="0.52 0 1
+                                 0.707107 0 0 -0.707107
+                                 -0.162152 -1.13045 1.22615 -0.0956903 1.40864 2.47463e-06 -0.298576 -1.12777 1.24789 -0.120122 1.27222 -3.14159 "/>
   </keyframe>
+
 
 </mujoco>
