@@ -7,16 +7,29 @@ mlivr_wbc:
       max_iter: 1000
 
     weights:
-      state_reg: 8e-3
-      control_reg: 1e-4
+      state_reg: 1e-2
+      control_reg: 1e-2
 
-      state_limits: 1e-4
-      control_limits: 1e-4
+      state_limits: 1e-2
+      control_limits: 1e-2
 
-      ee_tracking: 5e1
+      ee_tracking: 1e2
       sup_ee_tracking: 1e2
       ee_vel_damping: 1e0
 
       env_collision: 1e1
 
-      momentum_reg: 0.0
+      momentum_reg: 1e-2
+
+    weight_schedules:
+      ctrl_reg:
+        s_accel: 0.1
+        s_decel: 0.9
+        accel_multi: 5.0
+        decel_multi: 20.0
+
+      ee_vel:
+        s_accel: 0.2
+        s_decel: 0.6
+        accel_multi: 5.0
+        decel_multi: 20.0

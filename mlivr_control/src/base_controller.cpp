@@ -28,14 +28,18 @@ BaseController::BaseController(const std::string & node_name, const rclcpp::Node
 
   std::string urdf_path =
     ament_index_cpp::get_package_share_directory("mlivr_description") + "/urdf/mlivr.urdf";
-  robot_core_ = std::make_unique<mlivr_model::RobotCore>(urdf_path);
+  robot_ = std::make_unique<fbml::RobotCore>(urdf_path, Eigen::Vector3d::Zero());
 
-  num_joints_ = robot_core_->getModel().nv - 6;
+  robot_->setActuatorParameters(
+    this->declare_parameter<double>("mj.armature"), this->declare_parameter<double>("mj.damping"));
+
+  num_joints_ = robot_->getModel().nv - 6;
 
   // Publisher
   cmd_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("/joint_cmds", 10);
   ee_path_marker_pub_ =
     this->create_publisher<visualization_msgs::msg::Marker>("/planned_trajectory", 10);
+  trigger_pub_ = this->create_publisher<std_msgs::msg::Bool>("/start_control", 10);
 
   // Subscriber
   joint_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -43,7 +47,7 @@ BaseController::BaseController(const std::string & node_name, const rclcpp::Node
     std::bind(&BaseController::jointStateCallback, this, std::placeholders::_1));
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     "/odom", 10, std::bind(&BaseController::odomCallback, this, std::placeholders::_1));
-  trigger_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+  trigger_sub_ = this->create_subscription<std_msgs::msg::Bool>(
     "/start_control", 10, std::bind(&BaseController::triggerCallback, this, std::placeholders::_1));
 
   // Timer
@@ -145,11 +149,9 @@ void BaseController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   is_odom_received_ = true;
 }
 
-void BaseController::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
+void BaseController::triggerCallback(const std_msgs::msg::Bool::SharedPtr msg)
 {
-  (void)msg;
-
-  if (!is_triggered_ && !is_initialized_) {
+  if (msg->data && !is_triggered_ && !is_initialized_) {
     is_triggered_ = true;
 
     if (this->generateTrajectory()) {
@@ -164,6 +166,7 @@ void BaseController::triggerCallback(const std_msgs::msg::Empty::SharedPtr msg)
 void BaseController::timerCallback()
 {
   if (!is_initialized_) {
+    trigger_pub_->publish(std_msgs::msg::Bool());
     this->publishWaitingState();
     return;
   }
