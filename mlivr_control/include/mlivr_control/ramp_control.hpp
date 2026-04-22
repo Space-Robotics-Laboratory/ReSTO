@@ -59,6 +59,9 @@ private:
   ramp::lrst::WeightParams default_weight_params_;
   Eigen::MatrixXd optimized_bezier_P_;
 
+  std::string current_swing_ee_frame_;
+  std::vector<std::string> current_swing_joints_;
+
   std::unique_ptr<ramp::md::MomentumDistribution> md_solver_;
   double momentum_distribution_factor_ = 0.5;
 

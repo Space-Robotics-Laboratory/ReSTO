@@ -25,9 +25,6 @@ namespace mlivr_control
 RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
 : BaseController("ramp_control", options)
 {
-  kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
-  dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
-
   // ROS 2 parameters
   use_lrst_ = this->declare_parameter<bool>("use_lrst", true);
   default_solver_params_.dt = this->declare_parameter<double>("solver.dt", 0.01);
@@ -46,12 +43,29 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   momentum_distribution_factor_ =
     this->declare_parameter<double>("momentum_distribution_factor", 0.5);
 
-  duration_ = default_solver_params_.step_duration;
+  kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
+  dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
-  lrst_optimizer_ = std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(
-    kinematics_.get(), dynamics_.get(), num_joints_, ee_frames_.size());
+  // LRST
+  lrst_optimizer_ =
+    std::make_unique<ramp::lrst::LowReactionSwingTrajectory>(num_joints_, ee_frames_.size());
+
+  lrst_optimizer_->setIKSolverCallback(
+    [this](Eigen::VectorXd & q_inout, const Eigen::Isometry3d & pose_des) -> bool {
+      return this->kinematics_->solveNumericalIK(
+        q_inout, this->current_swing_ee_frame_, pose_des, this->current_swing_joints_);
+    });
+
+  lrst_optimizer_->setCouplingInertiaCallback(
+    [this](const Eigen::VectorXd & q_in, Eigen::MatrixXd & H_bm_out) {
+      Eigen::MatrixXd H_b_dummy;
+      this->dynamics_->computePartitionedMassMatrices(q_in, H_b_dummy, H_bm_out);
+    });
+
+  // MD
   md_solver_ = std::make_unique<ramp::md::MomentumDistribution>(num_joints_, ee_frames_.size());
 
+  duration_ = default_solver_params_.step_duration;
   target_joint_pos_.resize(num_joints_, 0.0);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
@@ -59,7 +73,6 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
 
 bool RAMPControl::generateTrajectory()
 {
-  int nq = robot_->getModel().nq;
   Eigen::VectorXd q = pinocchio::neutral(robot_->getModel());
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
@@ -79,10 +92,11 @@ bool RAMPControl::generateTrajectory()
     RCLCPP_INFO(this->get_logger(), "Generating trajectory using LRST optimization.");
     lrst_optimizer_->setBoundaryConditions(start_pos, target_pos);
 
-    std::vector<std::string> swing_limb_joint_names =
-      robot_->getJointNamesBetweenFrames("base_link", ee_frames_[1]);
+    current_swing_ee_frame_ = ee_frames_[1];
+    current_swing_joints_ =
+      robot_->getJointNamesBetweenFrames("base_link", current_swing_ee_frame_);
 
-    lrst_optimizer_->setRobotState(q, ee_frames_[1], swing_limb_joint_names);
+    lrst_optimizer_->setRobotState(q, pose_R.rotation());
 
     ramp::lrst::SolverParams current_solver_params = default_solver_params_;
     ramp::lrst::WeightParams current_weight_params = default_weight_params_;
@@ -155,8 +169,7 @@ Eigen::VectorXd RAMPControl::computeCommandStep()
     return Eigen::VectorXd::Zero(num_joints_);
   }
 
-  int nq = robot_->getModel().nq;
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
+  Eigen::VectorXd q = pinocchio::neutral(robot_->getModel());
   q.head(7) = current_base_pose_;
   for (int i = 0; i < num_joints_; ++i) {
     q(7 + i) = current_joint_pos_[i];
