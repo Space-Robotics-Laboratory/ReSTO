@@ -65,7 +65,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
 
 bool WBControl::generateTrajectory()
 {
-  Eigen::Vector3d offset(1.0, 0.0, 0.0);  // in world frame
+  Eigen::Vector3d offset(0.0, -0.5, 0.0);  // in world frame
 
   {
     pinocchio::Data data(*model_ptr_);

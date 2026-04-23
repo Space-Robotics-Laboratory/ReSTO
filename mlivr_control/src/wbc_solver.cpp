@@ -135,7 +135,7 @@ bool WbcSolver::computeTrajectory(
 
     params_.weights.control_reg =
       ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
-    params_.weights.ee_tracking = sw_ee_tracking_default * 7e-3;
+    params_.weights.ee_tracking = sw_ee_tracking_default * 1e-5;
     params_.weights.ee_vel_damping =
       ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
 

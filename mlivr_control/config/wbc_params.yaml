@@ -2,20 +2,20 @@ mlivr_wbc:
   ros__parameters:
 
     solver:
-      horizon_steps: 5000
+      horizon_steps: 2000
       dt: 0.01
       max_iter: 1000
 
     weights:
-      state_reg: 1e-2
-      control_reg: 1.5e1
+      state_reg: 1e-10
+      control_reg: 1e0
 
-      state_limits: 1e0
+      state_limits: 1e-2
       control_limits: 1e-10
 
       ee_tracking: 1e3
       sup_ee_tracking: 1e3
-      ee_vel_damping: 2e1
+      ee_vel_damping: 0.0
 
       env_collision: 0.0
 
