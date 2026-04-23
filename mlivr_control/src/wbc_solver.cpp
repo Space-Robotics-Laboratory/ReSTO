@@ -85,14 +85,14 @@ bool WbcSolver::computeTrajectory(
   target_swing_pose.translation() += world_translation_offset;
 
   double start_sup_ee_z = start_sup_ee_pose.translation().z();
-  double start_sw_ee_z = start_sw_ee_pose.translation().z();
+  // double start_sw_ee_z = start_sw_ee_pose.translation().z();
   double target_sw_ee_z = target_swing_pose.translation().z();
 
   double ctrl_reg_weight_default = params_.weights.control_reg;
   double sw_ee_tracking_default = params_.weights.ee_tracking;
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
 
-  double max_clearance = 0.05;
+  // double max_clearance = 0.05;
 
   int T = params_.solver.horizon_steps;
 
@@ -109,15 +109,16 @@ bool WbcSolver::computeTrajectory(
     double s_mj = 10.0 * std::pow(s, 3) - 15.0 * std::pow(s, 4) + 6.0 * std::pow(s, 5);
 
     // Z軸の持ち上げアーチ (両端で速度・加速度ゼロ)
-    double arch = 16.0 * std::pow(s, 2) * std::pow(1.0 - s, 2);
+    // double arch = 16.0 * std::pow(s, 2) * std::pow(1.0 - s, 2);
 
     pinocchio::SE3 step_target_pose = start_sw_ee_pose;
 
     // 目標位置の計算
     step_target_pose.translation().x() += world_translation_offset.x() * s_mj;
     step_target_pose.translation().y() += world_translation_offset.y() * s_mj;
-    step_target_pose.translation().z() +=
-      world_translation_offset.z() * s_mj + (max_clearance * arch);
+    step_target_pose.translation().z() += world_translation_offset.z() * s_mj;
+    // step_target_pose.translation().z() +=
+    //   world_translation_offset.z() * s_mj + (max_clearance * arch);
 
     // 終端だけでなく、道中のすべてのステップでターゲットを与える
     phase.ee_tracking_targets[swing_ee_frame] = step_target_pose;
@@ -130,12 +131,12 @@ bool WbcSolver::computeTrajectory(
     // double s = static_cast<double>(i) / (T - 1);
     // double arch = 4.0 * s * (1.0 - s);
 
-    phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
-    phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z + (max_clearance * arch);
+    // phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
+    // phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z + (max_clearance * arch);
 
     params_.weights.control_reg =
       ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
-    params_.weights.ee_tracking = sw_ee_tracking_default * 1e-5;
+    params_.weights.ee_tracking = sw_ee_tracking_default * 0.0;
     params_.weights.ee_vel_damping =
       ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
 
@@ -152,9 +153,9 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.support_limbs = {support_ee_frame};
   terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
+  params_.weights.ee_tracking = sw_ee_tracking_default;
   params_.weights.control_reg =
     ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
-  params_.weights.ee_tracking = sw_ee_tracking_default;
   params_.weights.ee_vel_damping =
     ee_vel_weight_default * params_.ee_vel_schedule.decel_multi * 2.0;
 
@@ -199,7 +200,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 
   addEndEffectorVelocityDampingCost(costs);
 
-  addEnvironmentCollisionCost(costs, phase);
+  // addEnvironmentCollisionCost(costs, phase);
 
   addMomentumRegularizationCost(costs);
 
