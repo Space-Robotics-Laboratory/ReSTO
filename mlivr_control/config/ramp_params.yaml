@@ -6,16 +6,16 @@ mlivr_ramp:
 
     solver:
       dt: 0.01
-      step_duration: 10.0
-      step_height: 0.05
+      step_duration: 20.0
+      step_height: 0.25
       relative_tol: 1e-4
       max_iter: 1000
 
     weights:
-      force_max: 1.0 # Max of linear component of derivative of momentum
-      moment_max: 1.0 # Max of angular component of derivative of momentum
-      step_height_max: 50.0
-      step_height_ave: 50.0
+      force_max: 10.0 # Max of linear component of derivative of momentum
+      moment_max: 10.0 # Max of angular component of derivative of momentum
+      step_height_max: 1.0
+      step_height_ave: 1.0
 
     # MD
     momentum_distribution_factor: 1.0

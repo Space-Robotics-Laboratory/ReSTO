@@ -67,6 +67,8 @@ RAMPControl::RAMPControl(const rclcpp::NodeOptions & options)
   duration_ = default_solver_params_.step_duration;
   target_joint_pos_.resize(num_joints_, 0.0);
 
+  std::cout << "duration = " << duration_ << std::endl;
+
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
@@ -83,7 +85,7 @@ bool RAMPControl::generateTrajectory()
   Eigen::Vector3d start_pos = pose_R.translation();
   Eigen::Quaterniond start_quat(pose_R.rotation());
 
-  auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
+  auto displacement = Eigen::Vector3d(0.0, -0.5, 0.0);
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = start_quat;
 
