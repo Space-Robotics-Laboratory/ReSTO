@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include <crocoddyl/core/activations/quadratic-barrier.hpp>
+#include <crocoddyl/core/activations/weighted-quadratic.hpp>
 #include <crocoddyl/core/costs/cost-sum.hpp>
 #include <crocoddyl/core/costs/residual.hpp>
 #include <crocoddyl/core/integrator/euler.hpp>
@@ -118,7 +119,7 @@ bool WbcSolver::computeTrajectory(
     phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z;
 
     WeightParams running_weights = default_weights;
-    running_weights.sw_ee_tracking *= 0.0;
+    running_weights.sw_ee_tracking = 0.0;
     running_weights.control_reg *= computeWeightMultiplier(s, params_.ctrl_reg_schedule);
     running_weights.ee_vel_damping *= computeWeightMultiplier(s, params_.ee_vel_schedule);
 
@@ -128,6 +129,7 @@ bool WbcSolver::computeTrajectory(
   // === Terminal Model ===
 
   TaskPhase terminal_phase;
+  terminal_phase.is_terminal = true;
   terminal_phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
   terminal_phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
   terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
@@ -198,11 +200,25 @@ void WbcSolver::addStateAndControlRegularizationCosts(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
   const Eigen::VectorXd & x0)
 {
+  Eigen::VectorXd state_weight_vector = Eigen::VectorXd::Ones(state_->get_ndx());
+  // state_weight_vector.setConstant(1e-2);
+  // state_weight_vector.segment(0, 3).setConstant(10.0);
+  // state_weight_vector.segment(3, 3).setConstant(2.35e1);
+  state_weight_vector[4] = 1e2;
+  // state_weight_vector.segment(16, 3).setConstant(4e2);
+  state_weight_vector[16] = 1e3;
+  state_weight_vector[17] = 1e3;
+  // state_weight_vector[18] = 0.0;
+
+  auto state_activation =
+    std::make_shared<crocoddyl::ActivationModelWeightedQuad>(state_weight_vector);
+
   // State regularization cost
   auto x_residual =
     std::make_shared<crocoddyl::ResidualModelState>(state_, x0, actuation_->get_nu());
   costs->addCost(
-    "state_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
+    "state_reg",
+    std::make_shared<crocoddyl::CostModelResidual>(state_, state_activation, x_residual),
     weights.state_reg);
 
   // Control regularization cost
@@ -272,16 +288,25 @@ void WbcSolver::addEndEffectorTrackingCost(
     auto placement_residual = std::make_shared<crocoddyl::ResidualModelFramePlacement>(
       state_, frame_id, target_pose, actuation_->get_nu());
 
+    bool is_support = false;
     double ee_tracking_weight = weights.sw_ee_tracking;
 
     auto it = std::find(phase.support_limbs.begin(), phase.support_limbs.end(), frame_name);
     if (it != phase.support_limbs.end()) {
+      is_support = true;
       ee_tracking_weight = weights.sup_ee_tracking;
     }
 
+    Eigen::VectorXd tracking_weights = Eigen::VectorXd::Ones(6);
+    if (!phase.is_terminal && !is_support) {
+      tracking_weights.tail(3).setZero();
+    }
+
+    auto activation = std::make_shared<crocoddyl::ActivationModelWeightedQuad>(tracking_weights);
+
     costs->addCost(
       frame_name + "_tracking_target",
-      std::make_shared<crocoddyl::CostModelResidual>(state_, placement_residual),
+      std::make_shared<crocoddyl::CostModelResidual>(state_, activation, placement_residual),
       ee_tracking_weight);
   }
 }

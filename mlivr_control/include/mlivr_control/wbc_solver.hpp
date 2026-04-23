@@ -84,6 +84,8 @@ struct TaskPhase
   std::vector<std::string> support_limbs;
 
   std::map<std::string, double> ee_z_lower_bounds;
+
+  bool is_terminal = false;
 };
 
 class WbcSolver
