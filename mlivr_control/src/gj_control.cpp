@@ -26,6 +26,7 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_c
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   target_joint_pos_.resize(num_joints_, 0.0);
+  duration_ = 20.0;
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
@@ -45,15 +46,13 @@ bool GJControl::generateTrajectory()
   Eigen::Vector3d start_pos = pose_R.translation();
   Eigen::Quaterniond start_quat(pose_R.rotation());
 
-  auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
+  auto displacement = Eigen::Vector3d(0.0, -0.5, 0.0);
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = start_quat;
 
   Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
   Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
   Eigen::Quaterniond mid_quat = start_quat;
-
-  duration_ = 10.0;
 
   trajectory_generator::VectorStateConstraint start_p_c{
     0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
