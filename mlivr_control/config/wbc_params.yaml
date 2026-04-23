@@ -13,11 +13,11 @@ mlivr_wbc:
       state_limits: 1e0
       control_limits: 1e-10
 
-      ee_tracking: 1e3
+      sw_ee_tracking: 1e3
       sup_ee_tracking: 1e4
       ee_vel_damping: 1e0
 
-      env_collision: 0.0
+      env_collision: 1e-5
 
       momentum_reg: 1e1
 

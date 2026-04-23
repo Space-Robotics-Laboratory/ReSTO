@@ -92,8 +92,6 @@ bool WbcSolver::computeTrajectory(
   double sw_ee_tracking_default = params_.weights.sw_ee_tracking;
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
 
-  // double max_clearance = 0.05;
-
   int T = params_.solver.horizon_steps;
 
   // === Running Model ===
@@ -117,7 +115,6 @@ bool WbcSolver::computeTrajectory(
     phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
 
     phase.collision_frames = {support_ee_frame, swing_ee_frame};
-    // phase.collision_frames = {swing_ee_frame};
     phase.support_limbs = {support_ee_frame};
 
     phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
@@ -138,7 +135,6 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
   terminal_phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
   terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
-  // terminal_phase.collision_frames = {swing_ee_frame};
   terminal_phase.support_limbs = {support_ee_frame};
   terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
