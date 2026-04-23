@@ -3,9 +3,7 @@ Panels:
     Help Height: 138
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /Status1
+      Expanded: ~
       Splitter Ratio: 0.7473996877670288
     Tree Height: 1379
   - Class: rviz_common/Selection
@@ -292,18 +290,6 @@ Visualization Manager:
         All Enabled: false
         base_link:
           Value: false
-        handrail_1_site_1:
-          Value: false
-        handrail_1_site_2:
-          Value: false
-        handrail_1_site_3:
-          Value: false
-        handrail_1_site_4:
-          Value: false
-        handrail_1_site_5:
-          Value: false
-        handrail_2_site_1:
-          Value: false
         limb_1_base_link:
           Value: false
         limb_1_forearm_link:
@@ -412,6 +398,18 @@ Visualization Manager:
           Value: false
         planned/root_joint:
           Value: false
+        seattrack_1_site_1:
+          Value: false
+        seattrack_1_site_2:
+          Value: false
+        seattrack_1_site_3:
+          Value: false
+        seattrack_2_site_1:
+          Value: false
+        seattrack_2_site_2:
+          Value: false
+        seattrack_2_site_3:
+          Value: false
         world:
           Value: false
       Marker Scale: 0.5
@@ -442,18 +440,6 @@ Visualization Manager:
                           limb_2_gripper_link:
                             limb_2_palm_link:
                               {}
-          handrail_1_site_1:
-            {}
-          handrail_1_site_2:
-            {}
-          handrail_1_site_3:
-            {}
-          handrail_1_site_4:
-            {}
-          handrail_1_site_5:
-            {}
-          handrail_2_site_1:
-            {}
           limb_1_ft_sensor_site:
             {}
           limb_1_gripper_site:
@@ -526,6 +512,18 @@ Visualization Manager:
             {}
           planned/root_joint:
             {}
+          seattrack_1_site_1:
+            {}
+          seattrack_1_site_2:
+            {}
+          seattrack_1_site_3:
+            {}
+          seattrack_2_site_1:
+            {}
+          seattrack_2_site_2:
+            {}
+          seattrack_2_site_3:
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/Marker
@@ -578,6 +576,19 @@ Visualization Manager:
         Value: /mlivr_sim/limb_2/ee_ft_sensor
       Torque Arrow Scale: 1
       Torque Color: 204; 204; 51
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: IssJemEnv
+      Namespaces:
+        iss_jem: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /iss_environment
       Value: true
   Enabled: true
   Global Options:
@@ -640,10 +651,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0403982512652874
+      Pitch: -0.014601762406527996
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1204051971435547
+      Yaw: 2.635399341583252
     Saved: ~
 Window Geometry:
   Displays:
@@ -661,5 +672,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 3055
-  X: 385
-  Y: 686
+  X: 5803
+  Y: 472
