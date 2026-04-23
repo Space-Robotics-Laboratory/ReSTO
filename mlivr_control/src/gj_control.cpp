@@ -155,12 +155,13 @@ Eigen::VectorXd GJControl::computeCommandStep()
   cmd_msg.header.stamp = this->now();
 
   for (int i = 0; i < num_joints_; ++i) {
-    double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
-    target_joint_pos_[i] += safe_cmd * dt;
+    // double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
+    // target_joint_pos_[i] += safe_cmd * dt;
+    target_joint_pos_[i] += q_dot_cmd_all(i) * dt;
 
     cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position.push_back(target_joint_pos_[i]);
-    cmd_msg.velocity.push_back(0.0);
+    cmd_msg.velocity.push_back(q_dot_cmd_all(i));
     cmd_msg.effort.push_back(0.0);
   }
   cmd_pub_->publish(cmd_msg);
