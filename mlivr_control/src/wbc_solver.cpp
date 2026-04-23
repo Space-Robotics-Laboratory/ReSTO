@@ -24,11 +24,11 @@
 #include <crocoddyl/core/residuals/control.hpp>
 #include <crocoddyl/core/solvers/fddp.hpp>
 #include <crocoddyl/core/utils/callbacks.hpp>
-#include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
+// #include <crocoddyl/multibody/actions/contact-fwddyn.hpp>
 #include <crocoddyl/multibody/actions/free-fwddyn.hpp>
 #include <crocoddyl/multibody/actions/impulse-fwddyn.hpp>
-#include <crocoddyl/multibody/contacts/contact-6d.hpp>
-#include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
+// #include <crocoddyl/multibody/contacts/contact-6d.hpp>
+// #include <crocoddyl/multibody/contacts/multiple-contacts.hpp>
 #include <crocoddyl/multibody/impulses/impulse-6d.hpp>
 #include <crocoddyl/multibody/impulses/multiple-impulses.hpp>
 #include <crocoddyl/multibody/residuals/centroidal-momentum.hpp>
@@ -238,24 +238,15 @@ void WbcSolver::addStateAndControlLimitsCost(
   x_lb.segment(6, num_joints) = model_ptr_->lowerPositionLimit.tail(num_joints);
   x_ub.segment(6, num_joints) = model_ptr_->upperPositionLimit.tail(num_joints);
 
-  // ==========================================================
-  // ★ 新しいセルフコリジョン回避: 肘関節リミットの動的制限
-  // 腕が折りたたまれて手首が肩に当たるのを防ぐため、肘の限界角度を狭める
-  // ==========================================================
+  // Dynamic restrictions of elbow joint range of motion (for self collision avoidance)
   for (int i = 0; i < num_joints; ++i) {
-    // モデル内のジョイント名を取得 (0:universe, 1:root_joint のため +2)
     std::string j_name = model_ptr_->names[i + 2];
-
-    // 左右どちらの "elbow_joint" も対象にする
     if (j_name.find("elbow_joint") != std::string::npos) {
-      // 例: エルボーの曲がりを -2.0 rad ~ 2.0 rad の範囲に制限する
-      // （※ UR5eの本来のリミットは -3.14 ~ 3.14 ですが、これを絞ります）
-      // もしそれでもぶつかる場合は、1.5 や 1.0 などさらに数値を小さくしてください
-      x_lb(6 + i) = std::max(x_lb(6 + i), -2.5);
-      x_ub(6 + i) = std::min(x_ub(6 + i), 2.5);
+      constexpr double elbow_range = 2.5;
+      x_lb(6 + i) = std::max(x_lb(6 + i), -elbow_range);
+      x_ub(6 + i) = std::min(x_ub(6 + i), elbow_range);
     }
   }
-  // ==========================================================
 
   int vel_start_idx = 12 + num_joints;  // 12: base pose err and vel err
   x_lb.segment(vel_start_idx, num_joints) = -model_ptr_->velocityLimit.tail(num_joints);
