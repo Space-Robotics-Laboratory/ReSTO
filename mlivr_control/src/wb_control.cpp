@@ -31,7 +31,7 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");
   params.weights.control_limits = this->declare_parameter<double>("weights.control_limits");
-  params.weights.ee_tracking = this->declare_parameter<double>("weights.ee_tracking");
+  params.weights.sw_ee_tracking = this->declare_parameter<double>("weights.sw_ee_tracking");
   params.weights.sup_ee_tracking = this->declare_parameter<double>("weights.sup_ee_tracking");
   params.weights.ee_vel_damping = this->declare_parameter<double>("weights.ee_vel_damping");
   params.weights.env_collision = this->declare_parameter<double>("weights.env_collision");

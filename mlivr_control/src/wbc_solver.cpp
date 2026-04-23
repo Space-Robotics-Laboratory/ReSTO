@@ -85,11 +85,11 @@ bool WbcSolver::computeTrajectory(
   target_swing_pose.translation() += world_translation_offset;
 
   double start_sup_ee_z = start_sup_ee_pose.translation().z();
-  // double start_sw_ee_z = start_sw_ee_pose.translation().z();
+  double start_sw_ee_z = start_sw_ee_pose.translation().z();
   double target_sw_ee_z = target_swing_pose.translation().z();
 
   double ctrl_reg_weight_default = params_.weights.control_reg;
-  double sw_ee_tracking_default = params_.weights.ee_tracking;
+  double sw_ee_tracking_default = params_.weights.sw_ee_tracking;
   double ee_vel_weight_default = params_.weights.ee_vel_damping;
 
   // double max_clearance = 0.05;
@@ -105,38 +105,27 @@ bool WbcSolver::computeTrajectory(
 
     double s = static_cast<double>(i) / std::max(T - 1, 1);
 
-    // XY平面(およびZのオフセット)の滑らかな遷移割合 (5次多項式)「最小躍度軌道（Minimum Jerk Trajectory）」
+    // 5th-order Polynomial (Minimum Jerk Trajectory)
     double s_mj = 10.0 * std::pow(s, 3) - 15.0 * std::pow(s, 4) + 6.0 * std::pow(s, 5);
 
-    // Z軸の持ち上げアーチ (両端で速度・加速度ゼロ)
-    // double arch = 16.0 * std::pow(s, 2) * std::pow(1.0 - s, 2);
-
     pinocchio::SE3 step_target_pose = start_sw_ee_pose;
-
-    // 目標位置の計算
     step_target_pose.translation().x() += world_translation_offset.x() * s_mj;
     step_target_pose.translation().y() += world_translation_offset.y() * s_mj;
     step_target_pose.translation().z() += world_translation_offset.z() * s_mj;
-    // step_target_pose.translation().z() +=
-    //   world_translation_offset.z() * s_mj + (max_clearance * arch);
 
-    // 終端だけでなく、道中のすべてのステップでターゲットを与える
     phase.ee_tracking_targets[swing_ee_frame] = step_target_pose;
     phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
 
-    // phase.collision_frames = {support_ee_frame, swing_ee_frame};
-    phase.collision_frames = {swing_ee_frame};
+    phase.collision_frames = {support_ee_frame, swing_ee_frame};
+    // phase.collision_frames = {swing_ee_frame};
     phase.support_limbs = {support_ee_frame};
 
-    // double s = static_cast<double>(i) / (T - 1);
-    // double arch = 4.0 * s * (1.0 - s);
-
-    // phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
-    // phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z + (max_clearance * arch);
+    phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
+    phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z;
 
     params_.weights.control_reg =
       ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
-    params_.weights.ee_tracking = sw_ee_tracking_default * 0.0;
+    params_.weights.sw_ee_tracking = sw_ee_tracking_default * 0.0;
     params_.weights.ee_vel_damping =
       ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
 
@@ -148,12 +137,12 @@ bool WbcSolver::computeTrajectory(
   TaskPhase terminal_phase;
   terminal_phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
   terminal_phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
-  // terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
-  terminal_phase.collision_frames = {swing_ee_frame};
+  terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
+  // terminal_phase.collision_frames = {swing_ee_frame};
   terminal_phase.support_limbs = {support_ee_frame};
   terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
-  params_.weights.ee_tracking = sw_ee_tracking_default;
+  params_.weights.sw_ee_tracking = sw_ee_tracking_default;
   params_.weights.control_reg =
     ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
   params_.weights.ee_vel_damping =
@@ -200,7 +189,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 
   addEndEffectorVelocityDampingCost(costs);
 
-  // addEnvironmentCollisionCost(costs, phase);
+  addEnvironmentCollisionCost(costs, phase);
 
   addMomentumRegularizationCost(costs);
 
@@ -289,11 +278,10 @@ void WbcSolver::addEndEffectorTrackingCost(
     auto placement_residual = std::make_shared<crocoddyl::ResidualModelFramePlacement>(
       state_, frame_id, target_pose, actuation_->get_nu());
 
-    double ee_tracking_weight = params_.weights.ee_tracking;
+    double ee_tracking_weight = params_.weights.sw_ee_tracking;
 
     auto it = std::find(phase.support_limbs.begin(), phase.support_limbs.end(), frame_name);
     if (it != phase.support_limbs.end()) {
-      // ee_tracking_weight *= 2.0;  // TODO: Parameterize
       ee_tracking_weight = params_.weights.sup_ee_tracking;
     }
 

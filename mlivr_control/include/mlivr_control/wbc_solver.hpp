@@ -44,7 +44,7 @@ struct WeightParams
   double state_limits = 0.0;
   double control_limits = 0.0;
 
-  double ee_tracking = 0.0;
+  double sw_ee_tracking = 0.0;
   double sup_ee_tracking = 0.0;
   double ee_vel_damping = 0.0;
 
@@ -57,8 +57,8 @@ struct WeightScheduleParams
 {
   double s_accel = 0.2;
   double s_decel = 0.8;
-  double accel_multi = 5.0;
-  double decel_multi = 20.0;
+  double accel_multi = 1.0;
+  double decel_multi = 1.0;
 };
 
 struct WbcSolverParams
