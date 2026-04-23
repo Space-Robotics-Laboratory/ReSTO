@@ -201,14 +201,7 @@ void WbcSolver::addStateAndControlRegularizationCosts(
   const Eigen::VectorXd & x0)
 {
   Eigen::VectorXd state_weight_vector = Eigen::VectorXd::Ones(state_->get_ndx());
-  // state_weight_vector.setConstant(1e-2);
-  // state_weight_vector.segment(0, 3).setConstant(10.0);
-  // state_weight_vector.segment(3, 3).setConstant(2.35e1);
   state_weight_vector[4] = 1e2;
-  // state_weight_vector.segment(16, 3).setConstant(4e2);
-  state_weight_vector[16] = 1e3;
-  state_weight_vector[17] = 1e3;
-  // state_weight_vector[18] = 0.0;
 
   auto state_activation =
     std::make_shared<crocoddyl::ActivationModelWeightedQuad>(state_weight_vector);
@@ -244,6 +237,25 @@ void WbcSolver::addStateAndControlLimitsCost(
 
   x_lb.segment(6, num_joints) = model_ptr_->lowerPositionLimit.tail(num_joints);
   x_ub.segment(6, num_joints) = model_ptr_->upperPositionLimit.tail(num_joints);
+
+  // ==========================================================
+  // ★ 新しいセルフコリジョン回避: 肘関節リミットの動的制限
+  // 腕が折りたたまれて手首が肩に当たるのを防ぐため、肘の限界角度を狭める
+  // ==========================================================
+  for (int i = 0; i < num_joints; ++i) {
+    // モデル内のジョイント名を取得 (0:universe, 1:root_joint のため +2)
+    std::string j_name = model_ptr_->names[i + 2];
+
+    // 左右どちらの "elbow_joint" も対象にする
+    if (j_name.find("elbow_joint") != std::string::npos) {
+      // 例: エルボーの曲がりを -2.0 rad ~ 2.0 rad の範囲に制限する
+      // （※ UR5eの本来のリミットは -3.14 ~ 3.14 ですが、これを絞ります）
+      // もしそれでもぶつかる場合は、1.5 や 1.0 などさらに数値を小さくしてください
+      x_lb(6 + i) = std::max(x_lb(6 + i), -2.5);
+      x_ub(6 + i) = std::min(x_ub(6 + i), 2.5);
+    }
+  }
+  // ==========================================================
 
   int vel_start_idx = 12 + num_joints;  // 12: base pose err and vel err
   x_lb.segment(vel_start_idx, num_joints) = -model_ptr_->velocityLimit.tail(num_joints);
