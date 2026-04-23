@@ -88,9 +88,7 @@ bool WbcSolver::computeTrajectory(
   double start_sw_ee_z = start_sw_ee_pose.translation().z();
   double target_sw_ee_z = target_swing_pose.translation().z();
 
-  double ctrl_reg_weight_default = params_.weights.control_reg;
-  double sw_ee_tracking_default = params_.weights.sw_ee_tracking;
-  double ee_vel_weight_default = params_.weights.ee_vel_damping;
+  WeightParams default_weights = params_.weights;
 
   int T = params_.solver.horizon_steps;
 
@@ -102,7 +100,6 @@ bool WbcSolver::computeTrajectory(
     TaskPhase phase;
 
     double s = static_cast<double>(i) / std::max(T - 1, 1);
-
     // 5th-order Polynomial (Minimum Jerk Trajectory)
     double s_mj = 10.0 * std::pow(s, 3) - 15.0 * std::pow(s, 4) + 6.0 * std::pow(s, 5);
 
@@ -120,13 +117,12 @@ bool WbcSolver::computeTrajectory(
     phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
     phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z;
 
-    params_.weights.control_reg =
-      ctrl_reg_weight_default * computeWeightMultiplier(s, params_.ctrl_reg_schedule);
-    params_.weights.sw_ee_tracking = sw_ee_tracking_default * 0.0;
-    params_.weights.ee_vel_damping =
-      ee_vel_weight_default * computeWeightMultiplier(s, params_.ee_vel_schedule);
+    WeightParams running_weights = default_weights;
+    running_weights.sw_ee_tracking *= 0.0;
+    running_weights.control_reg *= computeWeightMultiplier(s, params_.ctrl_reg_schedule);
+    running_weights.ee_vel_damping *= computeWeightMultiplier(s, params_.ee_vel_schedule);
 
-    running_models.push_back(createActionModel(x0, phase));
+    running_models.push_back(createActionModel(running_weights, x0, phase));
   }
 
   // === Terminal Model ===
@@ -138,13 +134,12 @@ bool WbcSolver::computeTrajectory(
   terminal_phase.support_limbs = {support_ee_frame};
   terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
   terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
-  params_.weights.sw_ee_tracking = sw_ee_tracking_default;
-  params_.weights.control_reg =
-    ctrl_reg_weight_default * params_.ctrl_reg_schedule.decel_multi * 2.0;
-  params_.weights.ee_vel_damping =
-    ee_vel_weight_default * params_.ee_vel_schedule.decel_multi * 2.0;
 
-  auto terminal_model = createActionModel(x0, terminal_phase);
+  WeightParams terminal_weights = default_weights;
+  terminal_weights.control_reg *= params_.ctrl_reg_schedule.decel_multi * 2.0;
+  terminal_weights.ee_vel_damping *= params_.ee_vel_schedule.decel_multi * 2.0;
+
+  auto terminal_model = createActionModel(terminal_weights, x0, terminal_phase);
 
   //=======================
 
@@ -170,24 +165,24 @@ bool WbcSolver::computeTrajectory(
 }
 
 std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
-  const Eigen::VectorXd & x0, const TaskPhase & phase)
+  const WeightParams & weights, const Eigen::VectorXd & x0, const TaskPhase & phase)
 {
   // auto contacts = std::make_shared<crocoddyl::ContactModelMultiple>(state_, actuation_->get_nu());
   auto costs = std::make_shared<crocoddyl::CostModelSum>(state_, actuation_->get_nu());
 
   // === Costs ===
 
-  addStateAndControlRegularizationCosts(costs, x0);
+  addStateAndControlRegularizationCosts(costs, weights, x0);
 
-  addStateAndControlLimitsCost(costs);
+  addStateAndControlLimitsCost(costs, weights);
 
-  addEndEffectorTrackingCost(costs, phase);
+  addEndEffectorTrackingCost(costs, weights, phase);
 
-  addEndEffectorVelocityDampingCost(costs);
+  addEndEffectorVelocityDampingCost(costs, weights);
 
-  addEnvironmentCollisionCost(costs, phase);
+  addEnvironmentCollisionCost(costs, weights, phase);
 
-  addMomentumRegularizationCost(costs);
+  addMomentumRegularizationCost(costs, weights);
 
   // Differential-Algebraic Model (DAM)
   // auto dmodel = std::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(
@@ -200,23 +195,25 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
 }
 
 void WbcSolver::addStateAndControlRegularizationCosts(
-  std::shared_ptr<crocoddyl::CostModelSum> & costs, const Eigen::VectorXd & x0)
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+  const Eigen::VectorXd & x0)
 {
   // State regularization cost
   auto x_residual =
     std::make_shared<crocoddyl::ResidualModelState>(state_, x0, actuation_->get_nu());
   costs->addCost(
     "state_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, x_residual),
-    params_.weights.state_reg);
+    weights.state_reg);
 
   // Control regularization cost
   auto u_residual = std::make_shared<crocoddyl::ResidualModelControl>(state_, actuation_->get_nu());
   costs->addCost(
     "control_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, u_residual),
-    params_.weights.control_reg);
+    weights.control_reg);
 }
 
-void WbcSolver::addStateAndControlLimitsCost(std::shared_ptr<crocoddyl::CostModelSum> & costs)
+void WbcSolver::addStateAndControlLimitsCost(
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // State and Control Limit Constraints (barrier functions)
 
@@ -246,7 +243,7 @@ void WbcSolver::addStateAndControlLimitsCost(std::shared_ptr<crocoddyl::CostMode
   costs->addCost(
     "state_limits",
     std::make_shared<crocoddyl::CostModelResidual>(state_, x_limit_activation, x_limit_residual),
-    params_.weights.state_limits);
+    weights.state_limits);
 
   // === Control Limit ===
 
@@ -261,11 +258,12 @@ void WbcSolver::addStateAndControlLimitsCost(std::shared_ptr<crocoddyl::CostMode
   costs->addCost(
     "control_limits",
     std::make_shared<crocoddyl::CostModelResidual>(state_, u_limit_activation, u_limit_residual),
-    params_.weights.control_limits);
+    weights.control_limits);
 }
 
 void WbcSolver::addEndEffectorTrackingCost(
-  std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase)
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+  const TaskPhase & phase)
 {
   // Dynamic addition of target-tracking costs
   for (const auto & [frame_name, target_pose] : phase.ee_tracking_targets) {
@@ -274,11 +272,11 @@ void WbcSolver::addEndEffectorTrackingCost(
     auto placement_residual = std::make_shared<crocoddyl::ResidualModelFramePlacement>(
       state_, frame_id, target_pose, actuation_->get_nu());
 
-    double ee_tracking_weight = params_.weights.sw_ee_tracking;
+    double ee_tracking_weight = weights.sw_ee_tracking;
 
     auto it = std::find(phase.support_limbs.begin(), phase.support_limbs.end(), frame_name);
     if (it != phase.support_limbs.end()) {
-      ee_tracking_weight = params_.weights.sup_ee_tracking;
+      ee_tracking_weight = weights.sup_ee_tracking;
     }
 
     costs->addCost(
@@ -288,7 +286,8 @@ void WbcSolver::addEndEffectorTrackingCost(
   }
 }
 
-void WbcSolver::addEndEffectorVelocityDampingCost(std::shared_ptr<crocoddyl::CostModelSum> & costs)
+void WbcSolver::addEndEffectorVelocityDampingCost(
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // End-effector velocity damping cost
   for (const auto & frame_name : params_.ee_frames) {
@@ -300,13 +299,13 @@ void WbcSolver::addEndEffectorVelocityDampingCost(std::shared_ptr<crocoddyl::Cos
 
     costs->addCost(
       frame_name + "_vel_damping",
-      std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual),
-      params_.weights.ee_vel_damping);
+      std::make_shared<crocoddyl::CostModelResidual>(state_, vel_residual), weights.ee_vel_damping);
   }
 }
 
 void WbcSolver::addEnvironmentCollisionCost(
-  std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase)
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+  const TaskPhase & phase)
 {
   for (const auto & frame_name : phase.collision_frames) {
     pinocchio::FrameIndex frame_id = model_ptr_->getFrameId(frame_name);
@@ -331,11 +330,12 @@ void WbcSolver::addEnvironmentCollisionCost(
       frame_name + "_floor_collision",
       std::make_shared<crocoddyl::CostModelResidual>(
         state_, trans_barrier_activation, translation_residual),
-      params_.weights.env_collision);
+      weights.env_collision);
   }
 }
 
-void WbcSolver::addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostModelSum> & costs)
+void WbcSolver::addMomentumRegularizationCost(
+  std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // Penalty to keep total momentum about the robot's center of mass at zero
   auto momentum_residual = std::make_shared<crocoddyl::ResidualModelCentroidalMomentum>(
@@ -343,7 +343,7 @@ void WbcSolver::addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostMod
 
   costs->addCost(
     "momentum_reg", std::make_shared<crocoddyl::CostModelResidual>(state_, momentum_residual),
-    params_.weights.momentum_reg);
+    weights.momentum_reg);
 }
 
 double WbcSolver::computeWeightMultiplier(double s, const WeightScheduleParams & sched)
