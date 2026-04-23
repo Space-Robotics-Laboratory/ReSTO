@@ -29,6 +29,8 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
 
   params.weights.state_reg = this->declare_parameter<double>("weights.state_reg");
   params.weights.control_reg = this->declare_parameter<double>("weights.control_reg");
+  params.weights.base_pose_reg_diag = this->declare_parameter<std::vector<double>>(
+    "weights.base_pose_reg_diag", std::vector<double>());
   params.weights.state_limits = this->declare_parameter<double>("weights.state_limits");
   params.weights.control_limits = this->declare_parameter<double>("weights.control_limits");
   params.weights.sw_ee_tracking = this->declare_parameter<double>("weights.sw_ee_tracking");

@@ -41,6 +41,8 @@ struct WeightParams
   double state_reg = 0.0;
   double control_reg = 0.0;
 
+  std::vector<double> base_pose_reg_diag;
+
   double state_limits = 0.0;
   double control_limits = 0.0;
 

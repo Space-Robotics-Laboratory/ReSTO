@@ -200,11 +200,15 @@ void WbcSolver::addStateAndControlRegularizationCosts(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
   const Eigen::VectorXd & x0)
 {
-  Eigen::VectorXd state_weight_vector = Eigen::VectorXd::Ones(state_->get_ndx());
-  state_weight_vector[4] = 1e2;
+  Eigen::VectorXd state_weight_vec = Eigen::VectorXd::Ones(state_->get_ndx());
+  if (!weights.base_pose_reg_diag.empty()) {
+    for (int i = 0; i < 6; ++i) {
+      state_weight_vec[i] = weights.base_pose_reg_diag[i];
+    }
+  }
 
   auto state_activation =
-    std::make_shared<crocoddyl::ActivationModelWeightedQuad>(state_weight_vector);
+    std::make_shared<crocoddyl::ActivationModelWeightedQuad>(state_weight_vec);
 
   // State regularization cost
   auto x_residual =
