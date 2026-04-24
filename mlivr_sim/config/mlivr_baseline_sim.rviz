@@ -217,8 +217,6 @@ Visualization Manager:
           Value: false
         limb_2_wrist_3_link:
           Value: false
-        planned/limb_2_palm_link:
-          Value: true
         seattrack_1_site_1:
           Value: false
         seattrack_1_site_2:
@@ -231,8 +229,6 @@ Visualization Manager:
           Value: false
         seattrack_2_site_3:
           Value: false
-        target/limb_2_palm_link:
-          Value: true
         world:
           Value: false
       Marker Scale: 0.5
@@ -271,8 +267,6 @@ Visualization Manager:
             {}
           limb_2_gripper_site:
             {}
-          planned/limb_2_palm_link:
-            {}
           seattrack_1_site_1:
             {}
           seattrack_1_site_2:
@@ -285,15 +279,13 @@ Visualization Manager:
             {}
           seattrack_2_site_3:
             {}
-          target/limb_2_palm_link:
-            {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: EETrajectoryMarker
       Namespaces:
-        mlivr_gjc: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -435,5 +427,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 3055
-  X: 1765
-  Y: 621
+  X: 6056
+  Y: 466
