@@ -246,7 +246,7 @@ void WbcSolver::addStateAndControlLimitsCost(
   for (int i = 0; i < num_joints; ++i) {
     std::string j_name = model_ptr_->names[i + 2];
     if (j_name.find("elbow_joint") != std::string::npos) {
-      constexpr double elbow_range = 2.5;
+      constexpr double elbow_range = 2.4;
       x_lb(6 + i) = std::max(x_lb(6 + i), -elbow_range);
       x_ub(6 + i) = std::min(x_ub(6 + i), elbow_range);
     }
