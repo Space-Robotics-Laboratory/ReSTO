@@ -44,13 +44,19 @@ bool KJControl::generateTrajectory()
   Eigen::Vector3d start_pos = pose_R.translation();
   Eigen::Quaterniond start_quat(pose_R.rotation());
 
-  auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
-  Eigen::Vector3d target_pos = start_pos + displacement;
-  Eigen::Quaterniond target_quat = start_quat;
+  Eigen::Vector3d swing_height = Eigen::Vector3d::Zero();
 
-  Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
-  Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
-  Eigen::Quaterniond mid_quat = start_quat;
+  // auto displacement = Eigen::Vector3d(0.0, -0.2, 0.0);
+  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  // swing_height = Eigen::Vector3d(0.0, 0.0, 0.05);
+  auto displacement = Eigen::Vector3d(0.0, -0.7, 0.4);
+  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
+
+  Eigen::Vector3d target_pos = start_pos + displacement;
+  Eigen::Quaterniond target_quat = rot_world_x * start_quat;
+
+  Eigen::Vector3d mid_pos = (start_pos + target_pos) / 2.0 + swing_height;
+  Eigen::Quaterniond mid_quat = start_quat.slerp(0.5, target_quat);
 
   duration_ = 10.0;
 
@@ -139,9 +145,8 @@ Eigen::VectorXd KJControl::computeCommandStep()
       v_spline_world.head<3>() = pos_spline_->getVelocity(t);
       v_spline_world.tail<3>() = ori_spline_->getAngularVelocity(t);
 
-      pinocchio::Motion v_ff_world(v_spline_world);
-      pinocchio::Motion v_ff_local_R = pose_R.actInv(v_ff_world);
-      v_target_local_R = v_ff_local_R.toVector();
+      v_target_local_R.head<3>() = pose_R.rotation().transpose() * v_spline_world.head<3>();
+      v_target_local_R.tail<3>() = pose_R.rotation().transpose() * v_spline_world.tail<3>();
     }
   }
 
@@ -161,12 +166,13 @@ Eigen::VectorXd KJControl::computeCommandStep()
   cmd_msg.header.stamp = this->now();
 
   for (int i = 0; i < num_joints_; ++i) {
-    double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
-    target_joint_pos_[i] += safe_cmd * dt;
+    // double safe_cmd = std::clamp(q_dot_cmd_all(i), -200.0, 200.0);
+    // target_joint_pos_[i] += safe_cmd * dt;
+    target_joint_pos_[i] += q_dot_cmd_all(i) * dt;
 
     cmd_msg.name.push_back(robot_->getModel().names[i + 2]);
     cmd_msg.position.push_back(target_joint_pos_[i]);
-    cmd_msg.velocity.push_back(0.0);
+    cmd_msg.velocity.push_back(q_dot_cmd_all(i));
     cmd_msg.effort.push_back(0.0);
   }
   cmd_pub_->publish(cmd_msg);

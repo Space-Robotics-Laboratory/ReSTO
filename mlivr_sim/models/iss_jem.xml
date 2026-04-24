@@ -19,21 +19,31 @@
       <site name="handrail_1_site_5" pos="0  0.2 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
     </body> -->
 
-    <body name="handrail_2" pos="0.02 0.305 0.318" euler="0 0 0">
+    <!-- <body name="handrail_2" pos="0.02 0.305 0.318" euler="0 0 0">
       <geom type="box" size="0.0155 0.095 0.0155" rgba="0 0 1 0.5"/>
       <site name="handrail_2_site_1" pos="0  0.0 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
-    </body>
+    </body> -->
 
     <!-- <body name="obstacle_1" pos="0.02 -0.36 0.349" euler="0 0 0">
       <geom type="box" size="0.0155 0.0155 0.0155" rgba="1 0 0 0.5"/>
     </body> -->
 
-    <!-- <body name="seattrack_1" pos="0.02 0.04 0.25" euler="0 0 0">
+    <body name="seattrack_1" pos="0.02 0.04 0.25" euler="0 0 0">
       <geom type="box" size="0.0155 0.925 0.0155" rgba="0 0 1 0.5"/>
-      <site name="seattrack_1_site_1" pos="0 -0.5 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
-      <site name="seattrack_1_site_2" pos="0 0 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
-      <site name="seattrack_1_site_3" pos="0 0.5 0.0155" euler="0 3.1416 0" size="0.01" rgba="0 0 1 1"/>
-    </body> -->
+      <!-- <site name="seattrack_1_site_1" pos="0 -0.5 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/> -->
+      <site name="seattrack_1_site_1" pos="0 -0.25 0.1155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_1_site_2" pos="0 0 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+      <!-- <site name="seattrack_1_site_2" pos="0 0 0.1155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/> -->
+      <site name="seattrack_1_site_3" pos="0 0.5 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+    </body>
+
+    <body name="seattrack_2" pos="1.03 0.04 0.25" euler="0 0 0">
+      <geom type="box" size="0.0155 0.925 0.0155" rgba="0 0 1 0.5"/>
+      <site name="seattrack_2_site_1" pos="0 -0.25 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+      <site name="seattrack_2_site_2" pos="0 0 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+      <!-- <site name="seattrack_2_site_2" pos="0 0 0.1155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/> -->
+      <site name="seattrack_2_site_3" pos="0 0.5 0.0155" euler="0 3.1416 1.5708" size="0.01" rgba="0 0 1 1"/>
+    </body>
 
   </worldbody>
 

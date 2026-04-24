@@ -4,10 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /Status1
+        - /TF1/Frames1
       Splitter Ratio: 0.7473996877670288
-    Tree Height: 1379
+    Tree Height: 1770
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -292,18 +291,6 @@ Visualization Manager:
         All Enabled: false
         base_link:
           Value: false
-        handrail_1_site_1:
-          Value: false
-        handrail_1_site_2:
-          Value: false
-        handrail_1_site_3:
-          Value: false
-        handrail_1_site_4:
-          Value: false
-        handrail_1_site_5:
-          Value: false
-        handrail_2_site_1:
-          Value: false
         limb_1_base_link:
           Value: false
         limb_1_forearm_link:
@@ -412,6 +399,20 @@ Visualization Manager:
           Value: false
         planned/root_joint:
           Value: false
+        seattrack_1_site_1:
+          Value: false
+        seattrack_1_site_2:
+          Value: false
+        seattrack_1_site_3:
+          Value: false
+        seattrack_2_site_1:
+          Value: false
+        seattrack_2_site_2:
+          Value: false
+        seattrack_2_site_3:
+          Value: false
+        target/limb_2_palm_link:
+          Value: true
         world:
           Value: false
       Marker Scale: 0.5
@@ -442,18 +443,6 @@ Visualization Manager:
                           limb_2_gripper_link:
                             limb_2_palm_link:
                               {}
-          handrail_1_site_1:
-            {}
-          handrail_1_site_2:
-            {}
-          handrail_1_site_3:
-            {}
-          handrail_1_site_4:
-            {}
-          handrail_1_site_5:
-            {}
-          handrail_2_site_1:
-            {}
           limb_1_ft_sensor_site:
             {}
           limb_1_gripper_site:
@@ -526,13 +515,27 @@ Visualization Manager:
             {}
           planned/root_joint:
             {}
+          seattrack_1_site_1:
+            {}
+          seattrack_1_site_2:
+            {}
+          seattrack_1_site_3:
+            {}
+          seattrack_2_site_1:
+            {}
+          seattrack_2_site_2:
+            {}
+          seattrack_2_site_3:
+            {}
+          target/limb_2_palm_link:
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: EETrajectoryMarker
       Namespaces:
-        {}
+        mlivr_wbc: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -578,6 +581,19 @@ Visualization Manager:
         Value: /mlivr_sim/limb_2/ee_ft_sensor
       Torque Arrow Scale: 1
       Torque Color: 204; 204; 51
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: IssJemEnv
+      Namespaces:
+        iss_jem: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /iss_environment
       Value: true
   Enabled: true
   Global Options:
@@ -625,33 +641,33 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.6300510168075562
+      Distance: 1.3535884618759155
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.07138502597808838
-        Y: 0.10293996334075928
-        Z: 0.7040321826934814
+        X: -0.07064807415008545
+        Y: 0.10556957125663757
+        Z: 0.7913908958435059
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0403982512652874
+      Pitch: 0.020398225635290146
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1204051971435547
+      Yaw: 2.5654048919677734
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1885
+  Height: 2276
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000002a30000065bfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b000000b000fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000006e0000065b0000018200fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000015f0000065bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000006e0000065b0000013200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000bef0000005afc0100000002fb0000000800540069006d0065010000000000000bef0000058100fffffffb0000000800540069006d00650100000000000004500000000000000000000007d50000065b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000002a3000007e2fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b000000b000fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000006e000007e20000018200fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000015f000007e2fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000006e000007e20000013200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000e950000005afc0100000002fb0000000800540069006d0065010000000000000e950000058100fffffffb0000000800540069006d0065010000000000000450000000000000000000000a7b000007e200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -660,6 +676,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 3055
-  X: 385
-  Y: 686
+  Width: 3733
+  X: 532
+  Y: 224

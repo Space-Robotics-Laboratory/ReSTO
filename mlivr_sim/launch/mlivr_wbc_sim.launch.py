@@ -29,6 +29,7 @@ def generate_launch_description():
     robot_description = {'robot_description': robot_desc}
 
     mlivr_params = os.path.join(desc_pkg_dir, 'config', 'mlivr_params.yaml')
+    env_params = os.path.join(desc_pkg_dir, 'config', 'env_params.yaml')
     sim_params = os.path.join(sim_pkg_dir, 'config', 'sim_params.yaml')
     wbc_params = os.path.join(ctrl_pkg_path, 'config', 'wbc_params.yaml')
 
@@ -57,6 +58,14 @@ def generate_launch_description():
         parameters=[sim_params]
     )
 
+    env_visualizer_node = Node(
+        package='mlivr_description',
+        executable='env_visualizer',
+        name='env_visualizer',
+        output='screen',
+        parameters=[env_params]
+    )
+
     mlivr_wbc_node = Node(
         package='mlivr_control',
         executable='wb_control_node',
@@ -69,5 +78,6 @@ def generate_launch_description():
         robot_state_publisher_node,
         rviz_node,
         mlivr_sim_node,
+        env_visualizer_node,
         mlivr_wbc_node
     ])

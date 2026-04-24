@@ -41,10 +41,12 @@ struct WeightParams
   double state_reg = 0.0;
   double control_reg = 0.0;
 
+  std::vector<double> base_pose_reg_diag;
+
   double state_limits = 0.0;
   double control_limits = 0.0;
 
-  double ee_tracking = 0.0;
+  double sw_ee_tracking = 0.0;
   double sup_ee_tracking = 0.0;
   double ee_vel_damping = 0.0;
 
@@ -57,8 +59,8 @@ struct WeightScheduleParams
 {
   double s_accel = 0.2;
   double s_decel = 0.8;
-  double accel_multi = 5.0;
-  double decel_multi = 20.0;
+  double accel_multi = 1.0;
+  double decel_multi = 1.0;
 };
 
 struct WbcSolverParams
@@ -84,6 +86,8 @@ struct TaskPhase
   std::vector<std::string> support_limbs;
 
   std::map<std::string, double> ee_z_lower_bounds;
+
+  bool is_terminal = false;
 };
 
 class WbcSolver
@@ -95,7 +99,7 @@ public:
   bool computeTrajectory(
     const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
     const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
-    const std::string & swing_ee_frame, const Eigen::Vector3d & world_translation_offset);
+    const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
@@ -104,22 +108,28 @@ public:
 
 private:
   std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
-    const Eigen::VectorXd & x0, const TaskPhase & phase);
+    const WeightParams & weights, const Eigen::VectorXd & x0, const TaskPhase & phase);
 
   void addStateAndControlRegularizationCosts(
-    std::shared_ptr<crocoddyl::CostModelSum> & costs, const Eigen::VectorXd & x0);
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const Eigen::VectorXd & x0);
 
-  void addStateAndControlLimitsCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+  void addStateAndControlLimitsCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
 
   void addEndEffectorTrackingCost(
-    std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase);
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const TaskPhase & phase);
 
-  void addEndEffectorVelocityDampingCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+  void addEndEffectorVelocityDampingCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
 
   void addEnvironmentCollisionCost(
-    std::shared_ptr<crocoddyl::CostModelSum> & costs, const TaskPhase & phase);
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const TaskPhase & phase);
 
-  void addMomentumRegularizationCost(std::shared_ptr<crocoddyl::CostModelSum> & costs);
+  void addMomentumRegularizationCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
 
   double computeWeightMultiplier(double s, const WeightScheduleParams & sched);
 

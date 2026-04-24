@@ -28,6 +28,7 @@ def generate_launch_description():
     robot_description = {'robot_description': robot_desc}
 
     mlivr_params = os.path.join(desc_pkg_dir, 'config', 'mlivr_params.yaml')
+    env_params = os.path.join(desc_pkg_dir, 'config', 'env_params.yaml')
     sim_params = os.path.join(sim_pkg_dir, 'config', 'sim_params.yaml')
 
     robot_state_publisher_node = Node(
@@ -39,7 +40,7 @@ def generate_launch_description():
     )
 
     rviz_config_file = os.path.join(sim_pkg_dir,
-                                    'config', 'mlivr_gjc_sim.rviz')
+                                    'config', 'mlivr_sim.rviz')
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -56,6 +57,14 @@ def generate_launch_description():
         parameters=[sim_params]
     )
 
+    env_visualizer_node = Node(
+        package='mlivr_description',
+        executable='env_visualizer',
+        name='env_visualizer',
+        output='screen',
+        parameters=[env_params]
+    )
+
     mlivr_gjc_node = Node(
         package='mlivr_control',
         executable='gj_control_node',
@@ -68,5 +77,6 @@ def generate_launch_description():
         robot_state_publisher_node,
         rviz_node,
         mlivr_sim_node,
+        env_visualizer_node,
         mlivr_gjc_node
     ])
