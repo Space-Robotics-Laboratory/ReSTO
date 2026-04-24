@@ -17,7 +17,7 @@ mlivr_wbc:
 
       sw_ee_tracking: 1e3
       sup_ee_tracking: 1e5
-      ee_vel_damping: 3e0
+      ee_vel_damping: 3e1
 
       env_collision: 1e-5
 

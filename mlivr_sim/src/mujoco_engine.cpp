@@ -51,20 +51,20 @@ MujocoEngine::MujocoEngine(const std::string & xml_path, bool extract_keyframe)
       mj_step(m_, d_);
 
       // Overwrite the base pose at every step forcefully
-      // d_->qpos[0] = 0.02;  // x
-      // d_->qpos[1] = 0.1;   // y
-      // d_->qpos[2] = 1.0;   // z
-      // d_->qpos[3] = 1.0;   // qw
-      // d_->qpos[4] = 0.0;   // qx
-      // d_->qpos[5] = 0.0;   // qy
-      // d_->qpos[6] = 0.0;   // qz
-      d_->qpos[0] = 0.52;            // x
-      d_->qpos[1] = -0.25;           // y
-      d_->qpos[2] = 1.0;             // z
-      d_->qpos[3] = 1.0 / sqrt(2);   // qw
-      d_->qpos[4] = 0.0;             // qx
-      d_->qpos[5] = 0.0;             // qy
-      d_->qpos[6] = -1.0 / sqrt(2);  // qz
+      d_->qpos[0] = 0.02;  // x
+      d_->qpos[1] = 0.3;   // y
+      d_->qpos[2] = 1.0;   // z
+      d_->qpos[3] = 1.0;   // qw
+      d_->qpos[4] = 0.0;   // qx
+      d_->qpos[5] = 0.0;   // qy
+      d_->qpos[6] = 0.0;   // qz
+      // d_->qpos[0] = 0.52;            // x
+      // d_->qpos[1] = -0.25;           // y
+      // d_->qpos[2] = 1.0;             // z
+      // d_->qpos[3] = 1.0 / sqrt(2);   // qw
+      // d_->qpos[4] = 0.0;             // qx
+      // d_->qpos[5] = 0.0;             // qy
+      // d_->qpos[6] = -1.0 / sqrt(2);  // qz
 
       // Reduce the overall system speed by 90%
       for (int j = 0; j < m_->nv; j++) {
