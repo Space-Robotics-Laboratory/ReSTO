@@ -85,9 +85,16 @@ bool RAMPControl::generateTrajectory()
   Eigen::Vector3d start_pos = pose_R.translation();
   Eigen::Quaterniond start_quat(pose_R.rotation());
 
-  auto displacement = Eigen::Vector3d(0.0, -0.5, 0.0);
+  Eigen::Vector3d swing_height = Eigen::Vector3d::Zero();
+
+  // auto displacement = Eigen::Vector3d(0.0, -0.5, 0.0);
+  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  // swing_height = Eigen::Vector3d(0.0, 0.0, default_solver_params_.step_height);
+  auto displacement = Eigen::Vector3d(0.0, -0.7, 0.4);
+  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
+
   Eigen::Vector3d target_pos = start_pos + displacement;
-  Eigen::Quaterniond target_quat = start_quat;
+  Eigen::Quaterniond target_quat = rot_world_x * start_quat;
 
   if (use_lrst_) {
     RCLCPP_INFO(this->get_logger(), "Generating trajectory using LRST optimization.");
@@ -107,8 +114,7 @@ bool RAMPControl::generateTrajectory()
   } else {
     RCLCPP_INFO(this->get_logger(), "Generating trajectory using parabolic Spline.");
 
-    Eigen::Vector3d swing_height = Eigen::Vector3d(0.0, 0.0, default_solver_params_.step_height);
-    Eigen::Vector3d mid_pos = start_pos + displacement / 2.0 + swing_height;
+    Eigen::Vector3d mid_pos = (start_pos + target_pos) / 2.0 + swing_height;
 
     trajectory_generator::VectorStateConstraint start_p_c{
       0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
@@ -123,11 +129,14 @@ bool RAMPControl::generateTrajectory()
   }
 
   // Generate orientation trajectory using spline
+  Eigen::Quaterniond mid_quat = start_quat.slerp(0.5, target_quat);
   trajectory_generator::AngularStateConstraint start_o_c{
     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   trajectory_generator::AngularStateConstraint end_o_c{
     duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
   auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
+  trajectory_generator::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
+  trajectory_generator::addConstraint(ori_constraints, mid_o_c);
   ori_spline_ = std::make_unique<trajectory_generator::OrientationSpline>(ori_constraints);
 
   trajectory_start_time_ = this->now().seconds();

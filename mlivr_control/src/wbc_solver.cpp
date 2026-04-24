@@ -56,7 +56,7 @@ WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverPar
 bool WbcSolver::computeTrajectory(
   const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
   const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
-  const std::string & swing_ee_frame, const Eigen::Vector3d & world_translation_offset)
+  const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose)
 {
   std::cout << "[WbcSolver] === Starting Trajectory Optimization ===" << std::endl;
 
@@ -82,12 +82,16 @@ bool WbcSolver::computeTrajectory(
 
   pinocchio::SE3 start_sup_ee_pose = data_ptr_->oMf[sup_ee_id];  // in world frame
   pinocchio::SE3 start_sw_ee_pose = data_ptr_->oMf[sw_ee_id];    // in world frame
-  pinocchio::SE3 target_swing_pose = start_sw_ee_pose;           // in world frame
-  target_swing_pose.translation() += world_translation_offset;
+  pinocchio::SE3 target_sw_ee_pose = target_swing_ee_pose;       // in world frame
 
   double start_sup_ee_z = start_sup_ee_pose.translation().z();
   double start_sw_ee_z = start_sw_ee_pose.translation().z();
-  double target_sw_ee_z = target_swing_pose.translation().z();
+  // double target_sw_ee_z = target_sw_ee_pose.translation().z();
+
+  Eigen::Vector3d start_pos = start_sw_ee_pose.translation();
+  Eigen::Vector3d target_pos = target_sw_ee_pose.translation();
+  Eigen::Quaterniond start_quat(start_sw_ee_pose.rotation());
+  Eigen::Quaterniond target_quat(target_sw_ee_pose.rotation());
 
   WeightParams default_weights = params_.weights;
 
@@ -105,9 +109,8 @@ bool WbcSolver::computeTrajectory(
     double s_mj = 10.0 * std::pow(s, 3) - 15.0 * std::pow(s, 4) + 6.0 * std::pow(s, 5);
 
     pinocchio::SE3 step_target_pose = start_sw_ee_pose;
-    step_target_pose.translation().x() += world_translation_offset.x() * s_mj;
-    step_target_pose.translation().y() += world_translation_offset.y() * s_mj;
-    step_target_pose.translation().z() += world_translation_offset.z() * s_mj;
+    step_target_pose.translation() = start_pos + (target_pos - start_pos) * s_mj;
+    step_target_pose.rotation() = start_quat.slerp(s_mj, target_quat).toRotationMatrix();
 
     phase.ee_tracking_targets[swing_ee_frame] = step_target_pose;
     phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
@@ -131,11 +134,11 @@ bool WbcSolver::computeTrajectory(
   TaskPhase terminal_phase;
   terminal_phase.is_terminal = true;
   terminal_phase.ee_tracking_targets[support_ee_frame] = start_sup_ee_pose;
-  terminal_phase.ee_tracking_targets[swing_ee_frame] = target_swing_pose;
+  terminal_phase.ee_tracking_targets[swing_ee_frame] = target_sw_ee_pose;
   terminal_phase.collision_frames = {support_ee_frame, swing_ee_frame};
   terminal_phase.support_limbs = {support_ee_frame};
   terminal_phase.ee_z_lower_bounds[support_ee_frame] = start_sup_ee_z;
-  terminal_phase.ee_z_lower_bounds[swing_ee_frame] = target_sw_ee_z;
+  terminal_phase.ee_z_lower_bounds[swing_ee_frame] = start_sw_ee_z;
 
   WeightParams terminal_weights = default_weights;
   terminal_weights.control_reg *= params_.ctrl_reg_schedule.decel_multi * 2.0;

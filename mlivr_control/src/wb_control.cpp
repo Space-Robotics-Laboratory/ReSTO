@@ -67,7 +67,10 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
 
 bool WBControl::generateTrajectory()
 {
-  Eigen::Vector3d offset(0.0, -0.5, 0.0);  // in world frame
+  // Eigen::Vector3d offset(0.0, -0.5, 0.0);  // in world frame
+  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  Eigen::Vector3d offset(0.0, -0.7, 0.4);  // in world frame
+  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
 
   {
     pinocchio::Data data(*model_ptr_);
@@ -83,13 +86,16 @@ bool WBControl::generateTrajectory()
     target_ee_pose_se3_ = data.oMf[swing_id];
     target_ee_pose_se3_.translation() += offset;
 
+    Eigen::Quaterniond start_quat(target_ee_pose_se3_.rotation());
+    target_ee_pose_se3_.rotation() = (rot_world_x * start_quat).toRotationMatrix();
+
     Eigen::Quaterniond q_target(target_ee_pose_se3_.rotation());
     this->publishTargetTF(target_ee_pose_se3_.translation(), q_target, "target/" + ee_frames_[1]);
   }
 
   bool success = wbc_solver_->computeTrajectory(
     current_base_pose_, current_base_twist_, current_joint_pos_, ee_frames_[0], ee_frames_[1],
-    offset);
+    target_ee_pose_se3_);
 
   if (success) {
     playback_idx_ = 0;

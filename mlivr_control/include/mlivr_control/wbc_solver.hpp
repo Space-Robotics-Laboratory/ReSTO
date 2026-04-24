@@ -99,7 +99,7 @@ public:
   bool computeTrajectory(
     const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
     const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
-    const std::string & swing_ee_frame, const Eigen::Vector3d & world_translation_offset);
+    const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
