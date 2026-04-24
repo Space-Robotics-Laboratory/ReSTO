@@ -42,7 +42,7 @@ def generate_launch_description():
     )
 
     rviz_config_file = os.path.join(sim_pkg_dir,
-                                    'config', 'mlivr_baseline_sim.rviz')
+                                    'config', 'mlivr_sim.rviz')
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',

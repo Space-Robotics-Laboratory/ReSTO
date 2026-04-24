@@ -17,14 +17,15 @@ clc; clear; close all;
 %% User settings
 
 type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
-csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
-% csv_file = "csv" + filesep + "to_rosbag2_2026_04_21-02_56_54" + ".csv";
+% csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
+csv_file = "csv" + filesep + "to_rosbag2_2026_04_24-17_08_17" + ".csv";
 
-save_fig = false;  % true/false
+save_fig = true;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
 plot_joint_torque = true;
+plot_base_pose = true;
 
 %% Parameters
 
@@ -203,6 +204,34 @@ if (plot_joint_torque)
   end
 
   fprintf('Whole Body Total Control Effort: %.4f [N^2 m^2 s]\n', total_control_effort_all);
+
+end
+
+%% Plot Base Orientation
+if (plot_base_pose)
+
+  base_pose_raw(:, 1) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_x"));
+  base_pose_raw(:, 2) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_y"));
+  base_pose_raw(:, 3) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_z"));
+  base_pose_raw(:, 4) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_roll"));
+  base_pose_raw(:, 5) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_pitch"));
+  base_pose_raw(:, 6) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_yaw"));
+
+  valid_idx = ~isnan(base_pose_raw(:, 1));
+  time_valid = time_vec(valid_idx);
+  base_pose_valid = base_pose_raw(valid_idx, :);
+
+  base_pos = base_pose_valid(:, 1:3);
+  base_ori = base_pose_valid(:, 4:6);
+
+  % Plot base orientation
+  y_label = "Base Orientation [rad]";
+  legends = ["Roll", "Pitch", "Yaw"];
+  plotGraph(time_valid, base_ori, y_label, legends);
+  if (save_fig)
+    fig_file_name = "base_orientation";
+    saveas(gcf, fig_file_name + ".fig", "fig");
+  end
 
 end
 
