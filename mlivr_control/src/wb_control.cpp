@@ -67,10 +67,10 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
 
 bool WBControl::generateTrajectory()
 {
-  Eigen::Vector3d offset(0.0, -0.3, 0.0);  // in world frame
-  Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
-  // Eigen::Vector3d offset(0.0, -0.7, 0.4);  // in world frame
-  // Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
+  // Eigen::Vector3d offset(0.0, -0.3, 0.0);  // in world frame
+  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  Eigen::Vector3d offset(0.0, -0.7, 0.4);  // in world frame
+  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
 
   {
     pinocchio::Data data(*model_ptr_);
@@ -139,7 +139,8 @@ Eigen::VectorXd WBControl::computeCommandStep()
     cmd_msg.name.push_back(model_ptr_->names[i + 2]);
     cmd_msg.position.push_back(q_des(i));
     cmd_msg.velocity.push_back(v_des(i));
-    cmd_msg.effort.push_back(tau_opt(i));
+    // cmd_msg.effort.push_back(tau_opt(i));
+    cmd_msg.effort.push_back(0.0);
   }
 
   cmd_pub_->publish(cmd_msg);

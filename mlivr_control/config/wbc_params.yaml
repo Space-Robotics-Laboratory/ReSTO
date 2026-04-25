@@ -8,18 +8,18 @@ mlivr_wbc:
 
     weights:
       state_reg: 1e-5
-      control_reg: 3e0
+      control_reg: 1e2
 
-      base_pose_reg_diag: [1.0, 1.0, 1.0, 1.0, 1e3, 1.0] # [x, y, z, r, p, y]
+      base_pose_reg_diag: [1.0, 1.0, 1.0, 1.0, 1.5e4, 1.0] # [x, y, z, r, p, y]
 
-      state_limits: 1e0
+      state_limits: 2e1
       control_limits: 1e-10
 
-      sw_ee_tracking: 1e3
+      sw_ee_tracking: 1e4
       sup_ee_tracking: 1e5
-      ee_vel_damping: 3e1
+      ee_vel_damping: 1e2
 
-      env_collision: 1e-5
+      env_collision: 1e1
 
       momentum_reg: 1e1
 
@@ -28,10 +28,10 @@ mlivr_wbc:
         s_accel: 0.1
         s_decel: 0.7
         accel_multi: 50.0
-        decel_multi: 100.0
+        decel_multi: 200.0
 
       ee_vel:
         s_accel: 0.1
         s_decel: 0.7
         accel_multi: 50.0
-        decel_multi: 100.0
+        decel_multi: 200.0
