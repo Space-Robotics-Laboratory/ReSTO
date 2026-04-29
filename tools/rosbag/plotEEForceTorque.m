@@ -18,9 +18,9 @@ clc; clear; close all;
 
 % type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
 % csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
-csv_file = "csv" + filesep + "rosbag2_2026_04_25-21_12_58" + ".csv";
+csv_file = "csv" + filesep + "rosbag2_2026_04_25-04_35_10" + ".csv";
 
-save_fig = false;  % true/false
+save_fig = true;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
@@ -31,6 +31,8 @@ plot_base_pose = true;
 
 limb_names = ["limb_1", "limb_2"];
 joint_names = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"];
+
+swing_duration = 20.0;
 
 %% Read Data
 
@@ -158,9 +160,15 @@ if (plot_ee_error)
   valid_idx_target = find(~isnan(target_raw(:, 1)), 1);
   target_pos = target_raw(valid_idx_target, :);
 
-  error_norm = norm(target_pos - actual_pos_synced(end, :));
-  rmse_val = sqrt(mean(error_norm.^2));
-  fprintf('Target RMSE: %.4f [m] (%.2f [mm])\n', rmse_val, rmse_val * 1000);
+  % error_norm = norm(target_pos - actual_pos_synced(end, :));
+  % rmse_val = sqrt(mean(error_norm.^2));
+  % fprintf('Target RMSE: %.4f [m] (%.2f [mm])\n', rmse_val, rmse_val * 1000);
+  mask_swing = (time_plot <= swing_duration);
+  actual_pos_swing = actual_pos_synced(mask_swing, :);
+
+  error_norm_target = norm(target_pos - actual_pos_swing(end, :));
+  rmse_val_target = sqrt(mean(error_norm_target.^2));
+  fprintf('Target RMSE (at %.1fs): %.4f [m] (%.2f [mm])\n', swing_duration, rmse_val_target, rmse_val_target * 1000);
 
 end
 
@@ -186,9 +194,15 @@ if (plot_joint_torque)
     time_valid = time_valid(mask);
     tau_valid = tau_valid(mask, :);
 
-    tau_squared_sum = sum(tau_valid.^2, 2);
+    % tau_squared_sum = sum(tau_valid.^2, 2);
+    mask_effort = (time_valid <= swing_duration);
+    time_effort = time_valid(mask_effort);
+    tau_effort = tau_valid(mask_effort, :);
 
-    limb_control_effort = trapz(time_valid, tau_squared_sum);
+    tau_squared_sum = sum(tau_effort.^2, 2);
+
+    % limb_control_effort = trapz(time_valid, tau_squared_sum);
+    limb_control_effort = trapz(time_effort, tau_squared_sum);
     fprintf('%s Total Control Effort: %.4f [N^2 m^2 s]\n', limb_name, limb_control_effort);
 
     total_control_effort_all = total_control_effort_all + limb_control_effort;
@@ -210,26 +224,69 @@ end
 %% Plot Base Orientation
 if (plot_base_pose)
 
-  base_pose_raw(:, 1) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_x"));
-  base_pose_raw(:, 2) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_y"));
-  base_pose_raw(:, 3) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_z"));
-  base_pose_raw(:, 4) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_roll"));
-  base_pose_raw(:, 5) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_pitch"));
-  base_pose_raw(:, 6) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_yaw"));
+  % base_pose_raw(:, 1) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_x"));
+  % base_pose_raw(:, 2) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_y"));
+  % base_pose_raw(:, 3) = data.(matlab.lang.makeValidName("x_odom_pose_pose_position_z"));
+  % base_pose_raw(:, 4) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_roll"));
+  % base_pose_raw(:, 5) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_pitch"));
+  % base_pose_raw(:, 6) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_yaw"));
 
-  valid_idx = ~isnan(base_pose_raw(:, 1));
+  % valid_idx = ~isnan(base_pose_raw(:, 1));
+  % time_valid = time_vec(valid_idx);
+  % base_pose_valid = base_pose_raw(valid_idx, :);
+
+  % base_pos = base_pose_valid(:, 1:3);
+  % base_ori = base_pose_valid(:, 4:6);
+
+  % % Plot base orientation
+  % y_label = "Base Orientation [rad]";
+  % legends = ["Roll", "Pitch", "Yaw"];
+  % plotGraph(time_valid, base_ori, y_label, legends);
+  % if (save_fig)
+  %   fig_file_name = "base_orientation";
+  %   saveas(gcf, fig_file_name + ".fig", "fig");
+  % end
+
+  base_quat_raw(:, 1) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_x"));
+  base_quat_raw(:, 2) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_y"));
+  base_quat_raw(:, 3) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_z"));
+  base_quat_raw(:, 4) = data.(matlab.lang.makeValidName("x_odom_pose_pose_orientation_w"));
+
+  valid_idx = ~isnan(base_quat_raw(:, 1));
   time_valid = time_vec(valid_idx);
-  base_pose_valid = base_pose_raw(valid_idx, :);
+  base_quat_valid = base_quat_raw(valid_idx, :);
 
-  base_pos = base_pose_valid(:, 1:3);
-  base_ori = base_pose_valid(:, 4:6);
+  % 0秒以降〜swing_durationまでのデータを抽出
+  mask_base = (time_valid >= 0 & time_valid <= swing_duration);
+  time_base_eval = time_valid(mask_base);
+  base_quat_swing = base_quat_valid(mask_base, :);
 
-  % Plot base orientation
-  y_label = "Base Orientation [rad]";
-  legends = ["Roll", "Pitch", "Yaw"];
-  plotGraph(time_valid, base_ori, y_label, legends);
+  % 初期姿勢(t=0)のクォータニオンを基準とする
+  q0 = base_quat_swing(1, :);
+
+  % 各時刻における初期姿勢からのSO(3)距離（角度偏差）の時系列データを計算
+  num_samples = size(base_quat_swing, 1);
+  pose_deviation_rad = zeros(num_samples, 1);
+
+  for i = 1:num_samples
+    qt = base_quat_swing(i, :);
+    % クォータニオンの内積（dot product）
+    dot_prod = abs(sum(q0 .* qt));
+    % 数値誤差で1を超えないようにクリップ
+    dot_prod = min(1.0, dot_prod);
+    % 測地線距離の計算 (rad)
+    pose_deviation_rad(i) = 2 * acos(dot_prod);
+  end
+
+  % 度数法 (Degree) に変換
+  pose_deviation_deg = rad2deg(pose_deviation_rad);
+
+  y_label = "Base Angular Distance from Initial Pose [deg]";
+  legends = [""];
+  plotGraph(time_base_eval, pose_deviation_deg, y_label, legends);
+
   if (save_fig)
-    fig_file_name = "base_orientation";
+    fig_file_name = "base_so3_deviation";
     saveas(gcf, fig_file_name + ".fig", "fig");
   end
 
