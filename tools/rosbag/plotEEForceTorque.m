@@ -18,10 +18,10 @@ clc; clear; close all;
 
 % type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
 % csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
-case_id = 1;
-csv_file = "case-" + case_id + filesep + "csv" + filesep + "rosbag2_2026_05_01-02_48_50" + ".csv";
+case_id = 2;
+csv_file = "case-" + case_id + filesep + "csv" + filesep + "rosbag2_2026_05_01-03_12_55" + ".csv";
 
-save_fig = false;  % true/false
+save_fig = true;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
@@ -59,6 +59,7 @@ fprintf('--- \nComputation Delay (Dead Time): %.4f [s]\n', delay);
 time_vec = data.x__time - t_motion;
 
 %% Plot Force/Torque
+% Ground Reaction Force [N], Ground Reaction Moment [Nm]
 if (plot_ft)
   for limb_id = 1 : length(limb_names)
     limb = limb_names(limb_id);

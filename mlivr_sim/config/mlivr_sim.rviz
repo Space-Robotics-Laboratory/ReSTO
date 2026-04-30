@@ -242,70 +242,6 @@ Visualization Manager:
           Value: false
         limb_2_wrist_3_link:
           Value: false
-        planned/base_link:
-          Value: false
-        planned/limb_1_base_link:
-          Value: false
-        planned/limb_1_elbow_joint:
-          Value: false
-        planned/limb_1_forearm_link:
-          Value: false
-        planned/limb_1_gripper_link:
-          Value: false
-        planned/limb_1_palm_link:
-          Value: true
-        planned/limb_1_shoulder_lift_joint:
-          Value: false
-        planned/limb_1_shoulder_link:
-          Value: false
-        planned/limb_1_shoulder_pan_joint:
-          Value: false
-        planned/limb_1_upper_arm_link:
-          Value: false
-        planned/limb_1_wrist_1_joint:
-          Value: false
-        planned/limb_1_wrist_1_link:
-          Value: false
-        planned/limb_1_wrist_2_joint:
-          Value: false
-        planned/limb_1_wrist_2_link:
-          Value: false
-        planned/limb_1_wrist_3_joint:
-          Value: false
-        planned/limb_1_wrist_3_link:
-          Value: false
-        planned/limb_2_base_link:
-          Value: false
-        planned/limb_2_elbow_joint:
-          Value: false
-        planned/limb_2_forearm_link:
-          Value: false
-        planned/limb_2_gripper_link:
-          Value: false
-        planned/limb_2_palm_link:
-          Value: true
-        planned/limb_2_shoulder_lift_joint:
-          Value: false
-        planned/limb_2_shoulder_link:
-          Value: false
-        planned/limb_2_shoulder_pan_joint:
-          Value: false
-        planned/limb_2_upper_arm_link:
-          Value: false
-        planned/limb_2_wrist_1_joint:
-          Value: false
-        planned/limb_2_wrist_1_link:
-          Value: false
-        planned/limb_2_wrist_2_joint:
-          Value: false
-        planned/limb_2_wrist_2_link:
-          Value: false
-        planned/limb_2_wrist_3_joint:
-          Value: false
-        planned/limb_2_wrist_3_link:
-          Value: false
-        planned/root_joint:
-          Value: false
         seattrack_1_site_1:
           Value: false
         seattrack_1_site_2:
@@ -355,70 +291,6 @@ Visualization Manager:
           limb_2_ft_sensor_site:
             {}
           limb_2_gripper_site:
-            {}
-          planned/base_link:
-            {}
-          planned/limb_1_base_link:
-            {}
-          planned/limb_1_elbow_joint:
-            {}
-          planned/limb_1_forearm_link:
-            {}
-          planned/limb_1_gripper_link:
-            {}
-          planned/limb_1_palm_link:
-            {}
-          planned/limb_1_shoulder_lift_joint:
-            {}
-          planned/limb_1_shoulder_link:
-            {}
-          planned/limb_1_shoulder_pan_joint:
-            {}
-          planned/limb_1_upper_arm_link:
-            {}
-          planned/limb_1_wrist_1_joint:
-            {}
-          planned/limb_1_wrist_1_link:
-            {}
-          planned/limb_1_wrist_2_joint:
-            {}
-          planned/limb_1_wrist_2_link:
-            {}
-          planned/limb_1_wrist_3_joint:
-            {}
-          planned/limb_1_wrist_3_link:
-            {}
-          planned/limb_2_base_link:
-            {}
-          planned/limb_2_elbow_joint:
-            {}
-          planned/limb_2_forearm_link:
-            {}
-          planned/limb_2_gripper_link:
-            {}
-          planned/limb_2_palm_link:
-            {}
-          planned/limb_2_shoulder_lift_joint:
-            {}
-          planned/limb_2_shoulder_link:
-            {}
-          planned/limb_2_shoulder_pan_joint:
-            {}
-          planned/limb_2_upper_arm_link:
-            {}
-          planned/limb_2_wrist_1_joint:
-            {}
-          planned/limb_2_wrist_1_link:
-            {}
-          planned/limb_2_wrist_2_joint:
-            {}
-          planned/limb_2_wrist_2_link:
-            {}
-          planned/limb_2_wrist_3_joint:
-            {}
-          planned/limb_2_wrist_3_link:
-            {}
-          planned/root_joint:
             {}
           seattrack_1_site_1:
             {}
@@ -544,7 +416,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.87431001663208
+      Distance: 1.4514657258987427
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -559,10 +431,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.045398205518722534
+      Pitch: 0.020398199558258057
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1404101848602295
+      Yaw: 2.5653998851776123
     Saved: ~
 Window Geometry:
   Displays:
