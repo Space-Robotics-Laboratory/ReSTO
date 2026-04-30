@@ -33,7 +33,11 @@ plot_base_pose = true;
 limb_names = ["limb_1", "limb_2"];
 joint_names = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"];
 
-swing_duration = 20.0;
+if (case_id == 1)
+  swing_duration = 10.0;
+elseif (case_id == 2)
+  swing_duration = 20.0;
+end
 
 %% Read Data
 
