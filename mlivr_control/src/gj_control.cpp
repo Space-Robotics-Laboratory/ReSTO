@@ -50,7 +50,7 @@ bool GJControl::generateTrajectory()
 
   auto displacement = Eigen::Vector3d(0.0, -0.3, 0.0);
   Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
-  swing_height = Eigen::Vector3d(0.0, 0.0, 0.0);
+  swing_height = Eigen::Vector3d(0.0, 0.0, 0.1);
   // auto displacement = Eigen::Vector3d(0.0, -0.7, 0.4);
   // Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
 

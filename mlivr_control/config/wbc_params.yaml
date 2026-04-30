@@ -13,7 +13,7 @@ mlivr_wbc:
       base_pose_reg_diag: [1.0, 1.0, 1.0, 1.0, 1.5e4, 1.0] # [x, y, z, r, p, y]
 
       state_limits: 2e1
-      control_limits: 1e-10
+      control_limits: 1e0
 
       sw_ee_tracking: 1e4
       sup_ee_tracking: 1e5
