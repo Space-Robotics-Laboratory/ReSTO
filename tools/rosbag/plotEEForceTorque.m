@@ -18,9 +18,9 @@ clc; clear; close all;
 
 % type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
 % csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
-csv_file = "csv" + filesep + "rosbag2_2026_04_30-18_19_16" + ".csv";
+csv_file = "csv" + filesep + "rosbag2_2026_04_30-20_42_39" + ".csv";
 
-save_fig = true;  % true/false
+save_fig = false;  % true/false
 
 plot_ft = true;
 plot_ee_error = true;
