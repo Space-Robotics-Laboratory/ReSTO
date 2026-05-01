@@ -19,7 +19,7 @@ clc; clear; close all;
 % type = "to";  % kj/gj/lrst/ramp-pmd/ramp-fmd/to
 % csv_file = "csv" + filesep + type + "_" + "rosbag2_2026_04_22-04_44_11" + ".csv";
 case_id = 2;
-csv_file = "case-" + case_id + filesep + "csv" + filesep + "rosbag2_2026_05_01-03_12_55" + ".csv";
+csv_file = "case-" + case_id + filesep + "csv" + filesep + "rosbag2_2026_04_25-21_12_58" + ".csv";
 
 save_fig = false;  % true/false
 
@@ -263,7 +263,8 @@ if (plot_base_pose)
   base_quat_valid = base_quat_raw(valid_idx, :);
 
   % 0秒以降〜swing_durationまでのデータを抽出
-  mask_base = (time_valid >= 0 & time_valid <= swing_duration);
+  % mask_base = (time_valid >= 0 & time_valid <= swing_duration);
+  mask_base = (time_valid >= 0);
   time_base_eval = time_valid(mask_base);
   base_quat_swing = base_quat_valid(mask_base, :);
 
