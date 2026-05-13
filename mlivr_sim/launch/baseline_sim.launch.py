@@ -65,7 +65,7 @@ def generate_launch_description():
         parameters=[env_params]
     )
 
-    mlivr_kjc_node = Node(
+    smj_control_node = Node(
         package='mlivr_control',
         executable='smj_control_node',
         name='smj_control',
@@ -78,5 +78,5 @@ def generate_launch_description():
         rviz_node,
         mlivr_sim_node,
         env_visualizer_node,
-        mlivr_kjc_node
+        smj_control_node
     ])

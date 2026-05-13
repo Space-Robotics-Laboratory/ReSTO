@@ -67,10 +67,10 @@ def generate_launch_description():
         parameters=[env_params]
     )
 
-    mlivr_ramp_node = Node(
+    ramp_control_node = Node(
         package='mlivr_control',
         executable='ramp_control_node',
-        name='mlivr_ramp',
+        name='ramp_control',
         output='screen',
         parameters=[mlivr_params, ramp_params]
     )
@@ -80,5 +80,5 @@ def generate_launch_description():
         rviz_node,
         mlivr_sim_node,
         env_visualizer_node,
-        mlivr_ramp_node
+        ramp_control_node
     ])

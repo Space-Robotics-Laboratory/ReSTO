@@ -1,4 +1,4 @@
-mlivr_ramp:
+ramp_control:
   ros__parameters:
 
     # LRST

@@ -65,7 +65,7 @@ def generate_launch_description():
         parameters=[env_params]
     )
 
-    mlivr_gjc_node = Node(
+    gjm_control_node = Node(
         package='mlivr_control',
         executable='gjm_control_node',
         name='gjm_control',
@@ -78,5 +78,5 @@ def generate_launch_description():
         rviz_node,
         mlivr_sim_node,
         env_visualizer_node,
-        mlivr_gjc_node
+        gjm_control_node
     ])
