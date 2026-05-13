@@ -20,47 +20,43 @@
 #include <string>
 #include <vector>
 
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
-#include "mlivr_control/types.hpp"
-#include "mlivr_control/visibility_control.hpp"
+#include "mlivr_control/base_controller.hpp"
+#include "mlivr_control/visibility_control.h"
 #include "mlivr_control/wbc_solver.hpp"
-#include "mlivr_model/core.hpp"
-#include "mlivr_model/dynamics.hpp"
-#include "mlivr_model/kinematics.hpp"
 
 namespace mlivr_control
 {
 
-class WBControl : public rclcpp::Node
+class WBControl : public BaseController
 {
 public:
   MLIVR_CONTROL_PUBLIC
   explicit WBControl(const rclcpp::NodeOptions & options);
   virtual ~WBControl() = default;
 
+protected:
+  void publishWaitingState() override;
+
+  bool generateTrajectory() override;
+
+  Eigen::VectorXd computeCommandStep() override;
+
+  std::vector<Eigen::Vector3d> getPlannedPath() override;
+
 private:
-  void publishCommandStep();
+  void publishPlannedRobotState(const Eigen::VectorXd & q_all);
 
-  void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
-
-  bool computeTrajectory();
-
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
-
-  std::unique_ptr<mlivr_model::RobotCore> robot_core_;
   std::shared_ptr<pinocchio::Model> model_ptr_;
-
   std::unique_ptr<WbcSolver> wbc_solver_;
 
-  std::vector<double> current_q_;
-
-  bool is_initialized_ = false;
   size_t playback_idx_ = 0;
+
+  pinocchio::SE3 target_ee_pose_se3_;
 };
 
 }  // namespace mlivr_control

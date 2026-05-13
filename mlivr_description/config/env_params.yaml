@@ -1,0 +1,6 @@
+env_visualizer:
+  ros__parameters:
+
+    mesh_resource: "package://mlivr_description/meshes/iss_jem/iss_jem_light.dae" # iss_jem/iss_jem_light
+
+    scale: 1.0

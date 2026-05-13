@@ -21,59 +21,41 @@
 #include <string>
 #include <vector>
 
-#include "coordinate_transformer/coordinate_transformer.hpp"
 #include "trajectory_generator/spline.hpp"
 #include "trajectory_generator/trajectory_generator.hpp"
-#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <fbml/dynamics.hpp>
+#include <fbml/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
-#include "mlivr_control/types.hpp"
-#include "mlivr_control/visibility_control.hpp"
-#include "mlivr_model/core.hpp"
-#include "mlivr_model/dynamics.hpp"
-#include "mlivr_model/kinematics.hpp"
+#include "mlivr_control/base_controller.hpp"
+#include "mlivr_control/visibility_control.h"
 
 namespace mlivr_control
 {
 
-class GJControl : public rclcpp::Node
+class GJControl : public BaseController
 {
 public:
   MLIVR_CONTROL_PUBLIC
   explicit GJControl(const rclcpp::NodeOptions & options);
-
   virtual ~GJControl() = default;
 
+protected:
+  bool generateTrajectory() override;
+
+  Eigen::VectorXd computeCommandStep() override;
+
+  std::vector<Eigen::Vector3d> getPlannedPath() override;
+
 private:
-  void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  std::unique_ptr<fbml::Kinematics> kinematics_;
+  std::unique_ptr<fbml::Dynamics> dynamics_;
 
-  void controlLoop();
+  std::vector<double> target_joint_pos_;
 
-  bool startTrajectory();
-
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cmd_pub_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
-  rclcpp::TimerBase::SharedPtr timer_;
-
-  std::unique_ptr<mlivr_model::RobotCore> robot_core_;
-  std::unique_ptr<mlivr_model::Kinematics> kinematics_;
-  std::unique_ptr<mlivr_model::Dynamics> dynamics_;
-
-  std::vector<double> current_q_;
-  std::vector<double> current_v_;
-  std::vector<double> target_q_;
-  bool is_initialized_;
-  std::mutex state_mutex_;
-
-  const int kNumJoints = 7;
-  const int kTotalNumJoints = 14;
-
-  std::unique_ptr<coordinate_transformer::CoordinateTransformer> tf_transformer_;
   std::unique_ptr<trajectory_generator::VectorSpline> pos_spline_;
   std::unique_ptr<trajectory_generator::OrientationSpline> ori_spline_;
-
+  double duration_;
   double trajectory_start_time_ = 0.0;
   bool is_trajectory_active_ = false;
 };

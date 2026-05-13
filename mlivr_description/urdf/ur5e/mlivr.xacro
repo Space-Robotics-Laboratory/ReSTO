@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot name="MLIVR" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="mesh_dir" default="package://mlivr_description/meshes"/>
+
+  <xacro:include filename="./ur5e_macro.xacro"/>
+  <xacro:include filename="./mlivr_gripper.xacro"/>
+
+  <mujoco>
+    <compiler strippath="false"/>
+  </mujoco>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="20.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.133333" ixy="0.0" ixz="0.0" iyy="0.133333" iyz="0.0" izz="0.133333"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.2 0.2 0.2"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.2 0.2 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <xacro:ur5e prefix="limb_1" parent="base_link">
+    <origin xyz="0.0 0.1 0.0" rpy="0 ${radians(90)} ${radians(90)}"/>
+  </xacro:ur5e>
+
+  <xacro:mlivr_gripper prefix="limb_1"/>
+
+  <xacro:ur5e prefix="limb_2" parent="base_link">
+    <origin xyz="0.0 -0.1 0.0" rpy="0 ${radians(90)} ${radians(270)}"/>
+  </xacro:ur5e>
+
+  <xacro:mlivr_gripper prefix="limb_2"/>
+
+</robot>

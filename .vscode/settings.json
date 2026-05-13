@@ -17,8 +17,10 @@
   // Code Spell Checker setting
   "cSpell.ignoreWords": [
     "buildtool",
+    "Centroidal",
     "Crocoddyl",
     "Eigen",
+    "FDDP",
     "FONTSCALE",
     "GLFW",
     "GNUCXX",
@@ -35,9 +37,11 @@
     "qvel",
     "rclcpp",
     "schematypens",
+    "sensordata",
     "urdf",
     "Wextra",
     "Wpedantic",
+    "xmat",
     "xoffset"
   ],
   "cmake.ignoreCMakeListsMissing": true,

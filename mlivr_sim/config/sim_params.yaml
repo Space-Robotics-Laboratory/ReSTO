@@ -1,0 +1,7 @@
+mlivr_sim:
+  ros__parameters:
+    extract_keyframe: false # true/false
+
+    gains:
+        kp: 30.0
+        kd: 0.1

@@ -21,13 +21,16 @@
   <depend>eigen</depend>
   <depend>geometry_msgs</depend>
   <depend>hpp-fcl</depend>
+  <depend>nav_msgs</depend>
   <depend>pinocchio</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>visualization_msgs</depend>
 
   <depend>coordinate_transformer</depend>
+  <depend>fbml</depend>
   <depend>trajectory_generator</depend>
-  <depend>mlivr_model</depend>
+  <depend>ramp</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_copyright</test_depend>

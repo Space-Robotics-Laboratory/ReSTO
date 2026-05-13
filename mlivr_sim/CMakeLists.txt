@@ -6,50 +6,96 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 
+find_package(Eigen3 REQUIRED)
 find_package(glfw3 REQUIRED)
-
-ament_auto_add_library(mlivr_mj_sim
-  src/mlivr_mj_sim.cpp
-)
 
 set(MUJOCO_DIR "$ENV{HOME}/.mujoco/mujoco-3.4.0")
 
-target_include_directories(mlivr_mj_sim PUBLIC
+# === C++ Library ===s
+
+add_library(mujoco_engine_lib SHARED
+  src/mujoco_engine.cpp
+  src/mujoco_renderer.cpp
+)
+
+target_include_directories(mujoco_engine_lib PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
   ${MUJOCO_DIR}/include
 )
-target_link_directories(mlivr_mj_sim PUBLIC
+
+target_link_directories(mujoco_engine_lib PUBLIC
   ${MUJOCO_DIR}/lib
 )
-target_link_libraries(mlivr_mj_sim
+
+target_link_libraries(mujoco_engine_lib
   mujoco
   glfw
+  Eigen3::Eigen
 )
 
-set_target_properties(mlivr_mj_sim PROPERTIES INSTALL_RPATH "${MUJOCO_DIR}/lib")
+set_target_properties(mujoco_engine_lib PROPERTIES INSTALL_RPATH "${MUJOCO_DIR}/lib")
 
-rclcpp_components_register_nodes(mlivr_mj_sim
-  "mlivr_mj_sim::MujocoSim"
+# === ROS 2 Node Plugin ===
+
+add_library(mlivr_sim_node SHARED
+  src/mujoco_ros_node.cpp
 )
 
-ament_auto_add_executable(mlivr_mj_sim_node
-  src/mlivr_mj_sim_node.cpp
+target_include_directories(mlivr_sim_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(mlivr_sim_node
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  std_msgs
+  tf2_ros
+)
+
+target_link_libraries(mlivr_sim_node
+  mujoco_engine_lib
+)
+
+rclcpp_components_register_node(mlivr_sim_node
+  PLUGIN "mlivr_sim::MujocoRosNode"
+  EXECUTABLE mlivr_sim_node_exec
+)
+
+# === Install ===
+
+install(TARGETS
+  mujoco_engine_lib
+  mlivr_sim_node
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/
+  DESTINATION include
 )
 
 install(
   DIRECTORY
+    config
     launch
     models
-  DESTINATION
-    share/${PROJECT_NAME}/
+  DESTINATION share/${PROJECT_NAME}/
 )
-
-# gtest
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-endif()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -58,6 +104,13 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_auto_package(
-  USE_SCOPED_HEADER_INSTALL_DIR
+ament_export_dependencies(
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  std_msgs
+  tf2_ros
 )
+ament_package()

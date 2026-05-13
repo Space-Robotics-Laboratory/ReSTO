@@ -33,31 +33,61 @@ struct SolverParams
 {
   int horizon_steps = 100;
   double dt = 0.01;
+  int max_iter = 500;
 };
 
 struct WeightParams
 {
-  double swing_goal = 1e4;
-  double state_reg = 1e-1;
-  double control_reg = 1e-4;
+  double state_reg = 0.0;
+  double control_reg = 0.0;
 
-  double state_limits = 1e3;
-  double control_limits = 1e3;
+  std::vector<double> base_pose_reg_diag;
+
+  double state_limits = 0.0;
+  double control_limits = 0.0;
+
+  double sw_ee_tracking = 0.0;
+  double sup_ee_tracking = 0.0;
+  double ee_vel_damping = 0.0;
+
+  double env_collision = 0.0;
+
+  double momentum_reg = 0.0;
+};
+
+struct WeightScheduleParams
+{
+  double s_accel = 0.2;
+  double s_decel = 0.8;
+  double accel_multi = 1.0;
+  double decel_multi = 1.0;
 };
 
 struct WbcSolverParams
 {
   SolverParams solver;
   WeightParams weights;
+
+  WeightScheduleParams ctrl_reg_schedule;
+  WeightScheduleParams ee_vel_schedule;
+
+  std::vector<std::string> ee_frames;
 };
 
 struct TaskPhase
 {
-  // 把持(Weld)するフレームとその姿勢
-  std::map<std::string, pinocchio::SE3> active_contacts;
+  // Frame name and target ee pose list for target-tracking
+  std::map<std::string, pinocchio::SE3> ee_tracking_targets;
 
-  // 目標追従させるフレームとその目標姿勢
-  std::map<std::string, pinocchio::SE3> swing_targets;
+  // Frame name list for environment collision
+  std::vector<std::string> collision_frames;
+
+  // Selection vector of support limbs
+  std::vector<std::string> support_limbs;
+
+  std::map<std::string, double> ee_z_lower_bounds;
+
+  bool is_terminal = false;
 };
 
 class WbcSolver
@@ -67,16 +97,41 @@ public:
   ~WbcSolver() = default;
 
   bool computeTrajectory(
-    const std::vector<double> & current_q_14, const std::string & fixed_frame,
-    const std::string & swing_frame, const Eigen::Vector3d & local_translation_offset);
+    const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
+    const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
+    const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose);
 
   void setParams(const WbcSolverParams & params) { params_ = params; }
 
   const std::vector<Eigen::VectorXd> & getOptimizedXs() const { return optimized_xs_; }
+  const std::vector<Eigen::VectorXd> & getOptimizedUs() const { return optimized_us_; }
 
 private:
   std::shared_ptr<crocoddyl::ActionModelAbstract> createActionModel(
-    const Eigen::VectorXd & x0, const TaskPhase & phase);
+    const WeightParams & weights, const Eigen::VectorXd & x0, const TaskPhase & phase);
+
+  void addStateAndControlRegularizationCosts(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const Eigen::VectorXd & x0);
+
+  void addStateAndControlLimitsCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
+
+  void addEndEffectorTrackingCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const TaskPhase & phase);
+
+  void addEndEffectorVelocityDampingCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
+
+  void addEnvironmentCollisionCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
+    const TaskPhase & phase);
+
+  void addMomentumRegularizationCost(
+    std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights);
+
+  double computeWeightMultiplier(double s, const WeightScheduleParams & sched);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
   std::shared_ptr<pinocchio::Data> data_ptr_;
@@ -85,6 +140,7 @@ private:
   std::shared_ptr<crocoddyl::ActuationModelFloatingBase> actuation_;
 
   std::vector<Eigen::VectorXd> optimized_xs_;
+  std::vector<Eigen::VectorXd> optimized_us_;
 
   WbcSolverParams params_;
 };
