@@ -21,6 +21,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     desc_pkg_dir = get_package_share_directory('mlivr_description')
     sim_pkg_dir = get_package_share_directory('mlivr_sim')
+    ctrl_pkg_path = get_package_share_directory('mlivr_control')
 
     urdf_file = os.path.join(desc_pkg_dir, 'urdf', 'mlivr.urdf')
     with open(urdf_file, 'r') as infp:
@@ -30,6 +31,7 @@ def generate_launch_description():
     mlivr_params = os.path.join(desc_pkg_dir, 'config', 'mlivr_params.yaml')
     env_params = os.path.join(desc_pkg_dir, 'config', 'env_params.yaml')
     sim_params = os.path.join(sim_pkg_dir, 'config', 'sim_params.yaml')
+    resto_params = os.path.join(ctrl_pkg_path, 'config', 'resto_params.yaml')
 
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
@@ -39,8 +41,7 @@ def generate_launch_description():
         parameters=[robot_description]
     )
 
-    rviz_config_file = os.path.join(sim_pkg_dir,
-                                    'config', 'mlivr_sim.rviz')
+    rviz_config_file = os.path.join(sim_pkg_dir, 'config', 'mlivr_sim.rviz')
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -65,12 +66,12 @@ def generate_launch_description():
         parameters=[env_params]
     )
 
-    gjm_control_node = Node(
+    resto_control_node = Node(
         package='mlivr_control',
-        executable='gjm_control_node',
-        name='gjm_control',
+        executable='resto_control_node',
+        name='resto_control',
         output='screen',
-        parameters=[mlivr_params]
+        parameters=[mlivr_params, resto_params]
     )
 
     return LaunchDescription([
@@ -78,5 +79,5 @@ def generate_launch_description():
         rviz_node,
         mlivr_sim_node,
         env_visualizer_node,
-        gjm_control_node
+        resto_control_node
     ])

@@ -1,6 +1,10 @@
-build/
-install
-log/
+build/*
+install/*
+log/*
+
+tools/rosbag/*
+!tools/rosbag/rosbag.bash
+!tools/rosbag/plotData.m
 
 *iss_jem.dae
 *iss_jem_raw.dae
