@@ -1,51 +1,53 @@
-# multi-limbed_intra-vehicular_robot_trajectory_optimization
+# ReSTO: Reaction-Suppression Trajectory Optimization
 
-## How to Run
+## Installation
 
-### WBC Simulation
+TBD
+
+## How to Run Simulations
 
 - Terminal #1
+  - Build
 
-  ```bash
-  colcon build --symlink-install && . install/setup.bash
-  ros2 launch mlivr_sim wbc_sim.launch.py
-  ```
+    ```bash
+    colcon build --symlink-install && . install/setup.bash
+    ```
+
+  - Launch simulation node
+    - ReSTO (Reaction-Suppression Trajectory Optimization)
+
+      ```bash
+      ros2 launch mlivr_sim resto_sim.launch.py
+      ```
+
+    - Baseline (Standard Manipulation Jacobian)
+
+      ```bash
+      ros2 launch mlivr_sim baseline_sim.launch.py
+      ```
+
+    - Generalized Jacobian Matrix (GJM)
+
+      ```bash
+      ros2 launch mlivr_sim gjm_sim.launch.py
+      ```
+
+    - Reaction-Aware Motion Planning (RAMP)
+
+      ```bash
+      ros2 launch mlivr_sim ramp_sim.launch.py
+      ```
 
 - Terminal #2
 
-  ```bash
-  . install/setup.bash
-  ros2 topic pub --once /start_control std_msgs/msg/Bool "{data: true}"
-  ```
+  - Trigger simulation start
 
-### GJM Simulation
+    ```bash
+    . install/setup.bash
+    ros2 topic pub --once /start_control std_msgs/msg/Bool "{data: true}"
+    ```
 
-- Terminal #1
+## Acknowledgements
 
-  ```bash
-  colcon build --symlink-install && . install/setup.bash
-  ros2 launch mlivr_sim gjm_sim.launch.py
-  ```
-
-- Terminal #2
-
-  ```bash
-  . install/setup.bash
-  ros2 topic pub --once /start_control std_msgs/msg/Bool "{data: true}"
-  ```
-
-### RAMP Simulation
-
-- Terminal #1
-
-  ```bash
-  colcon build --symlink-install && . install/setup.bash
-  ros2 launch mlivr_sim ramp_sim.launch.py
-  ```
-
-- Terminal #2
-
-  ```bash
-  . install/setup.bash
-  ros2 topic pub --once /start_control std_msgs/msg/Bool "{data: true}"
-  ```
+This project builds upon several excellent open-source works.
+For detailed credits and licenses regarding the 3D meshes and URDF models, please see the [mlivr_description README](./src/mlivr_description/README.md).

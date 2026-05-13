@@ -36,6 +36,7 @@
     "qpos",
     "qvel",
     "rclcpp",
+    "ReSTO",
     "schematypens",
     "sensordata",
     "urdf",

@@ -1,4 +1,4 @@
-mlivr_ramp:
+ramp_control:
   ros__parameters:
 
     # LRST
@@ -6,8 +6,8 @@ mlivr_ramp:
 
     solver:
       dt: 0.01
-      step_duration: 10.0
-      step_height: 0.1
+      step_duration: 20.0
+      step_height: 0.0
       relative_tol: 1e-4
       max_iter: 1000
 
@@ -18,4 +18,4 @@ mlivr_ramp:
       step_height_ave: 1.0
 
     # MD
-    momentum_distribution_factor: 1.0
+    momentum_distribution_factor: 1.0 # [0, 1]
