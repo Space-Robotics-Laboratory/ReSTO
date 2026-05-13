@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MLIVR_CONTROL__KJ_CONTROL_HPP_
-#define MLIVR_CONTROL__KJ_CONTROL_HPP_
+#ifndef MLIVR_CONTROL__SMJ_CONTROL_HPP_
+#define MLIVR_CONTROL__SMJ_CONTROL_HPP_
 
 #include <Eigen/Dense>
 #include <memory>
@@ -60,4 +60,4 @@ private:
 
 }  // namespace mlivr_control
 
-#endif  // MLIVR_CONTROL__KJ_CONTROL_HPP_
+#endif  // MLIVR_CONTROL__SMJ_CONTROL_HPP_

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/gj_control.hpp"
+#include "mlivr_control/gjm_control.hpp"
 
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -20,7 +20,7 @@
 namespace mlivr_control
 {
 
-GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_control", options)
+GJMControl::GJMControl(const rclcpp::NodeOptions & options) : BaseController("gjm_control", options)
 {
   kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
@@ -31,7 +31,7 @@ GJControl::GJControl(const rclcpp::NodeOptions & options) : BaseController("gj_c
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
-bool GJControl::generateTrajectory()
+bool GJMControl::generateTrajectory()
 {
   int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
@@ -48,11 +48,11 @@ bool GJControl::generateTrajectory()
 
   Eigen::Vector3d swing_height = Eigen::Vector3d::Zero();
 
-  auto displacement = Eigen::Vector3d(0.0, -0.3, 0.0);
-  Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
-  swing_height = Eigen::Vector3d(0.0, 0.0, 0.1);
-  // auto displacement = Eigen::Vector3d(0.0, -0.7, 0.4);
-  // Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
+  // auto displacement = Eigen::Vector3d(0.0, -0.3, 0.0);
+  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  // swing_height = Eigen::Vector3d(0.0, 0.0, 0.1);
+  auto displacement = Eigen::Vector3d(0.0, -0.7, 0.4);
+  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
 
   Eigen::Vector3d target_pos = start_pos + displacement;
   Eigen::Quaterniond target_quat = rot_world_x * start_quat;
@@ -88,7 +88,7 @@ bool GJControl::generateTrajectory()
   return true;
 }
 
-Eigen::VectorXd GJControl::computeCommandStep()
+Eigen::VectorXd GJMControl::computeCommandStep()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
 
@@ -174,7 +174,7 @@ Eigen::VectorXd GJControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
-std::vector<Eigen::Vector3d> GJControl::getPlannedPath()
+std::vector<Eigen::Vector3d> GJMControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
   if (!pos_spline_) return path;
@@ -188,4 +188,4 @@ std::vector<Eigen::Vector3d> GJControl::getPlannedPath()
 
 }  // namespace mlivr_control
 
-RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::GJControl)
+RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::GJMControl)

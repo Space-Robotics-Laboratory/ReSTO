@@ -29,22 +29,22 @@ ament_auto_add_executable(smj_control_node
   src/smj_control_node.cpp
 )
 
-# Generalized Jacobian Controller
-ament_auto_add_library(gj_control
-  src/gj_control.cpp
+# Generalized Jacobian Matrix-based Controller
+ament_auto_add_library(gjm_control
+  src/gjm_control.cpp
 )
-target_link_libraries(gj_control
+target_link_libraries(gjm_control
   base_controller
   trajectory_generator::trajectory_generator
 )
-rclcpp_components_register_nodes(gj_control
-  "mlivr_control::GJControl"
+rclcpp_components_register_nodes(gjm_control
+  "mlivr_control::GJMControl"
 )
-ament_auto_add_executable(gj_control_node
-  src/gj_control_node.cpp
+ament_auto_add_executable(gjm_control_node
+  src/gjm_control_node.cpp
 )
 
-# Generalized Jacobian Controller
+# RAMP-based Controller
 ament_auto_add_library(ramp_control
   src/ramp_control.cpp
 )

@@ -67,8 +67,8 @@ def generate_launch_description():
 
     mlivr_gjc_node = Node(
         package='mlivr_control',
-        executable='gj_control_node',
-        name='mlivr_gjc',
+        executable='gjm_control_node',
+        name='gjm_control',
         output='screen',
         parameters=[mlivr_params]
     )
