@@ -9,7 +9,7 @@
 
   <include file="iss_jem.xml"/>
 
-  <include file="mlivr_ur5e.xml"/>
+  <include file="mlivr.xml"/>
 
   <include file="init_state.xml"/>
 
