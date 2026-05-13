@@ -1,0 +1,70 @@
+{
+  "C_Cpp.clang_format_path": "",
+  "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format/.clang-format",
+  "C_Cpp.default.browse.databaseFilename": "null",
+  "C_Cpp.errorSquiggles": "enabled",
+  "C_Cpp.intelliSenseCacheSize": 1024,
+  // "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.intelliSenseMemoryLimit": 2048,
+  "C_Cpp.loggingLevel": "Error",
+  "C_Cpp.workspaceParsingPriority": "low",
+  "[cpp]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools"
+  },
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+  // Code Spell Checker setting
+  "cSpell.ignoreWords": [
+    "buildtool",
+    "Centroidal",
+    "Crocoddyl",
+    "Eigen",
+    "FDDP",
+    "FONTSCALE",
+    "GLFW",
+    "GNUCXX",
+    "Imai",
+    "lastx",
+    "lasty",
+    "lookat",
+    "Masazumi",
+    "mjcb",
+    "MLIVR",
+    "MuJoCo",
+    "qfrc",
+    "qpos",
+    "qvel",
+    "rclcpp",
+    "schematypens",
+    "sensordata",
+    "urdf",
+    "Wextra",
+    "Wpedantic",
+    "xmat",
+    "xoffset"
+  ],
+  "cmake.ignoreCMakeListsMissing": true,
+  "editor.formatOnSave": true,
+  "editor.hover.delay": 600,
+  "editor.renderWhitespace": "all",
+  "editor.tabSize": 2,
+  "editor.trimAutoWhitespace": true,
+  "files.associations": {},
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "markdownlint.config": {
+    "MD033": false,
+    "MD041": false
+  },
+  "python.analysis.extraPaths": [
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "ros.distro": "humble",
+  "cSpell.words": []
+}

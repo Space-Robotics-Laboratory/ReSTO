@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    ee_frames:
+      - "limb_1_palm_link"
+      - "limb_2_palm_link"
+
+    # MJCF
+    mj:
+      armature: 0.1
+      damping: 0.1

@@ -1,0 +1,16 @@
+<mujoco model="world">
+  <compiler angle="radian" autolimits="true"/>
+
+  <option gravity="0 0 0" timestep="0.001"/>
+
+  <visual>
+    <scale framelength="0.1" framewidth="0.005"/>
+  </visual>
+
+  <include file="iss_jem.xml"/>
+
+  <include file="mlivr_ur5e.xml"/>
+
+  <include file="init_state.xml"/>
+
+</mujoco>

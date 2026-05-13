@@ -1,0 +1,96 @@
+---
+# Modified from https://github.com/ament/ament_lint/blob/humble/ament_clang_format/ament_clang_format/configuration/.clang-format
+Language: Cpp
+
+# Use Google style as a base
+BasedOnStyle: Google
+
+# Overwrite access modifier like "private", "public" by ROS style
+AccessModifierOffset: -2
+
+# New line after opening bracket
+AlignAfterOpenBracket: AlwaysBreak
+
+# Do not align operands of binary and ternary expressions
+AlignOperands: DontAlign
+
+# Do not align trailing comments
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+
+# Allows short functions to remain on a single line only if they are inline
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+
+# Specifies brace-breaking rules
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+BreakBeforeBraces: Custom
+
+# Break constructor initializers before the colon and after the commas
+BreakConstructorInitializers: BeforeColon # Dose not work currently
+
+# Overwrite column max length
+ColumnLimit: 100
+
+# Indentation width for constructor initializer lists
+ConstructorInitializerIndentWidth: 0
+
+# Indentation width for line continuations
+ContinuationIndentWidth: 2
+
+# Disables automatic pointer alignment
+DerivePointerAlignment: false
+# Aligns pointers in the middle
+PointerAlignment: Middle
+
+# Formatting off for one line
+OneLineFormatOffRegex: ^(// NOLINT|logger$)
+
+# Disables automatic reformatting of comments
+ReflowComments: false
+
+# Do not use tab
+UseTab: Never
+
+# Include
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Headers containing "mlivr_"
+  - Regex: ".*mlivr_.*"
+    Priority: 5
+    CaseSensitive: true
+  # Headers containing "mlivr_"
+  - Regex: <.*mlivr_.*>
+    Priority: 5
+    CaseSensitive: true
+  # Project's headers
+  - Regex: '.*\.hpp'
+    Priority: 4
+    CaseSensitive: true
+  # C++ system headers
+  - Regex: <[a-z_]*>
+    Priority: 1
+    CaseSensitive: true
+  # Eigen headers
+  - Regex: <.*Eigen.*>
+    Priority: 1
+    CaseSensitive: true
+  # C system headers
+  - Regex: <.*\.h>
+    Priority: 0
+    CaseSensitive: true
+  # Local package headers
+  - Regex: '".*"'
+    Priority: 3
+    CaseSensitive: true
+  # Other Package headers
+  - Regex: <.*>
+    Priority: 2
+    CaseSensitive: true
