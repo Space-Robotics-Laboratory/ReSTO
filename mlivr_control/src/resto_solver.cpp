@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/wbc_solver.hpp"
+#include "mlivr_control/resto_solver.hpp"
 
 #include <iostream>
 
@@ -42,7 +42,7 @@
 namespace mlivr_control
 {
 
-WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverParams & params)
+RestoSolver::RestoSolver(std::shared_ptr<pinocchio::Model> model, const RestoSolverParams & params)
 : model_ptr_(model), params_(params)
 {
   data_ptr_ = std::make_shared<pinocchio::Data>(*model_ptr_);
@@ -50,15 +50,15 @@ WbcSolver::WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverPar
   state_ = std::make_shared<crocoddyl::StateMultibody>(model_ptr_);
   actuation_ = std::make_shared<crocoddyl::ActuationModelFloatingBase>(state_);
 
-  std::cout << "[WbcSolver] Crocoddyl State and Actuation models initialized." << std::endl;
+  std::cout << "[RestoSolver] Crocoddyl State and Actuation models initialized." << std::endl;
 }
 
-bool WbcSolver::computeTrajectory(
+bool RestoSolver::computeTrajectory(
   const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
   const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
   const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose)
 {
-  std::cout << "[WbcSolver] === Starting Trajectory Optimization ===" << std::endl;
+  std::cout << "[RestoSolver] === Starting Trajectory Optimization ===" << std::endl;
 
   int num_joints = model_ptr_->nv - 6;
 
@@ -163,13 +163,13 @@ bool WbcSolver::computeTrajectory(
   optimized_xs_ = solver.get_xs();
   optimized_us_ = solver.get_us();
 
-  std::cout << "[WbcSolver] Optimization completed! Trajectory length: " << optimized_xs_.size()
+  std::cout << "[RestoSolver] Optimization completed! Trajectory length: " << optimized_xs_.size()
             << std::endl;
 
   return true;
 }
 
-std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
+std::shared_ptr<crocoddyl::ActionModelAbstract> RestoSolver::createActionModel(
   const WeightParams & weights, const Eigen::VectorXd & x0, const TaskPhase & phase)
 {
   // auto contacts = std::make_shared<crocoddyl::ContactModelMultiple>(state_, actuation_->get_nu());
@@ -199,7 +199,7 @@ std::shared_ptr<crocoddyl::ActionModelAbstract> WbcSolver::createActionModel(
   return std::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, params_.solver.dt);
 }
 
-void WbcSolver::addStateAndControlRegularizationCosts(
+void RestoSolver::addStateAndControlRegularizationCosts(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
   const Eigen::VectorXd & x0)
 {
@@ -228,7 +228,7 @@ void WbcSolver::addStateAndControlRegularizationCosts(
     weights.control_reg);
 }
 
-void WbcSolver::addStateAndControlLimitsCost(
+void RestoSolver::addStateAndControlLimitsCost(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // State and Control Limit Constraints (barrier functions)
@@ -287,7 +287,7 @@ void WbcSolver::addStateAndControlLimitsCost(
     weights.control_limits);
 }
 
-void WbcSolver::addEndEffectorTrackingCost(
+void RestoSolver::addEndEffectorTrackingCost(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
   const TaskPhase & phase)
 {
@@ -321,7 +321,7 @@ void WbcSolver::addEndEffectorTrackingCost(
   }
 }
 
-void WbcSolver::addEndEffectorVelocityDampingCost(
+void RestoSolver::addEndEffectorVelocityDampingCost(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // End-effector velocity damping cost
@@ -338,7 +338,7 @@ void WbcSolver::addEndEffectorVelocityDampingCost(
   }
 }
 
-void WbcSolver::addEnvironmentCollisionCost(
+void RestoSolver::addEnvironmentCollisionCost(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights,
   const TaskPhase & phase)
 {
@@ -369,7 +369,7 @@ void WbcSolver::addEnvironmentCollisionCost(
   }
 }
 
-void WbcSolver::addMomentumRegularizationCost(
+void RestoSolver::addMomentumRegularizationCost(
   std::shared_ptr<crocoddyl::CostModelSum> & costs, const WeightParams & weights)
 {
   // Penalty to keep total momentum about the robot's center of mass at zero
@@ -381,7 +381,7 @@ void WbcSolver::addMomentumRegularizationCost(
     weights.momentum_reg);
 }
 
-double WbcSolver::computeWeightMultiplier(double s, const WeightScheduleParams & sched)
+double RestoSolver::computeWeightMultiplier(double s, const WeightScheduleParams & sched)
 {
   if (s < sched.s_accel) {
     double ratio = (sched.s_accel - s) / std::max(sched.s_accel, 1e-6);

@@ -1,4 +1,4 @@
-mlivr_wbc:
+resto_control:
   ros__parameters:
 
     solver:

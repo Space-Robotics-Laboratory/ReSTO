@@ -31,7 +31,7 @@ def generate_launch_description():
     mlivr_params = os.path.join(desc_pkg_dir, 'config', 'mlivr_params.yaml')
     env_params = os.path.join(desc_pkg_dir, 'config', 'env_params.yaml')
     sim_params = os.path.join(sim_pkg_dir, 'config', 'sim_params.yaml')
-    wbc_params = os.path.join(ctrl_pkg_path, 'config', 'wbc_params.yaml')
+    resto_params = os.path.join(ctrl_pkg_path, 'config', 'resto_params.yaml')
 
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
@@ -66,12 +66,12 @@ def generate_launch_description():
         parameters=[env_params]
     )
 
-    mlivr_wbc_node = Node(
+    resto_control_node = Node(
         package='mlivr_control',
-        executable='wb_control_node',
-        name='mlivr_wbc',
+        executable='resto_control_node',
+        name='resto_control',
         output='screen',
-        parameters=[mlivr_params, wbc_params]
+        parameters=[mlivr_params, resto_params]
     )
 
     return LaunchDescription([
@@ -79,5 +79,5 @@ def generate_launch_description():
         rviz_node,
         mlivr_sim_node,
         env_visualizer_node,
-        mlivr_wbc_node
+        resto_control_node
     ])

@@ -59,20 +59,20 @@ ament_auto_add_executable(ramp_control_node
   src/ramp_control_node.cpp
 )
 
-# Whole-Body Controller (Trajectory Optimization)
-ament_auto_add_library(wb_control
-  src/wb_control.cpp
-  src/wbc_solver.cpp
+# ReSTO Controller (Whole-Body Trajectory Optimization)
+ament_auto_add_library(resto_control
+  src/resto_control.cpp
+  src/resto_solver.cpp
 )
-target_link_libraries(wb_control
+target_link_libraries(resto_control
   base_controller
   trajectory_generator::trajectory_generator
 )
-rclcpp_components_register_nodes(wb_control
-  "mlivr_control::WBControl"
+rclcpp_components_register_nodes(resto_control
+  "mlivr_control::RestoControl"
 )
-ament_auto_add_executable(wb_control_node
-  src/wb_control_node.cpp
+ament_auto_add_executable(resto_control_node
+  src/resto_control_node.cpp
 )
 
 install(

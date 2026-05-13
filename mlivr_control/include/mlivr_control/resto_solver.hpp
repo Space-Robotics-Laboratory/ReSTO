@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MLIVR_CONTROL__WBC_SOLVER_HPP_
-#define MLIVR_CONTROL__WBC_SOLVER_HPP_
+#ifndef MLIVR_CONTROL__RESTO_SOLVER_HPP_
+#define MLIVR_CONTROL__RESTO_SOLVER_HPP_
 
 #include <Eigen/Dense>
 #include <map>
@@ -63,7 +63,7 @@ struct WeightScheduleParams
   double decel_multi = 1.0;
 };
 
-struct WbcSolverParams
+struct RestoSolverParams
 {
   SolverParams solver;
   WeightParams weights;
@@ -90,18 +90,18 @@ struct TaskPhase
   bool is_terminal = false;
 };
 
-class WbcSolver
+class RestoSolver
 {
 public:
-  explicit WbcSolver(std::shared_ptr<pinocchio::Model> model, const WbcSolverParams & params);
-  ~WbcSolver() = default;
+  explicit RestoSolver(std::shared_ptr<pinocchio::Model> model, const RestoSolverParams & params);
+  ~RestoSolver() = default;
 
   bool computeTrajectory(
     const Eigen::VectorXd & base_pose, const Eigen::VectorXd & base_twist,
     const std::vector<double> & current_joint_pos, const std::string & support_ee_frame,
     const std::string & swing_ee_frame, const pinocchio::SE3 & target_swing_ee_pose);
 
-  void setParams(const WbcSolverParams & params) { params_ = params; }
+  void setParams(const RestoSolverParams & params) { params_ = params; }
 
   const std::vector<Eigen::VectorXd> & getOptimizedXs() const { return optimized_xs_; }
   const std::vector<Eigen::VectorXd> & getOptimizedUs() const { return optimized_us_; }
@@ -142,9 +142,9 @@ private:
   std::vector<Eigen::VectorXd> optimized_xs_;
   std::vector<Eigen::VectorXd> optimized_us_;
 
-  WbcSolverParams params_;
+  RestoSolverParams params_;
 };
 
 }  // namespace mlivr_control
 
-#endif  // MLIVR_CONTROL__WBC_SOLVER_HPP_
+#endif  // MLIVR_CONTROL__RESTO_SOLVER_HPP_

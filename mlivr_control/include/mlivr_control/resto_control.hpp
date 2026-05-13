@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MLIVR_CONTROL__WB_CONTROL_HPP_
-#define MLIVR_CONTROL__WB_CONTROL_HPP_
+#ifndef MLIVR_CONTROL__RESTO_CONTROL_HPP_
+#define MLIVR_CONTROL__RESTO_CONTROL_HPP_
 
 #include <Eigen/Dense>
 #include <memory>
@@ -26,18 +26,18 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "mlivr_control/base_controller.hpp"
+#include "mlivr_control/resto_solver.hpp"
 #include "mlivr_control/visibility_control.h"
-#include "mlivr_control/wbc_solver.hpp"
 
 namespace mlivr_control
 {
 
-class WBControl : public BaseController
+class RestoControl : public BaseController
 {
 public:
   MLIVR_CONTROL_PUBLIC
-  explicit WBControl(const rclcpp::NodeOptions & options);
-  virtual ~WBControl() = default;
+  explicit RestoControl(const rclcpp::NodeOptions & options);
+  virtual ~RestoControl() = default;
 
 protected:
   void publishWaitingState() override;
@@ -52,7 +52,7 @@ private:
   void publishPlannedRobotState(const Eigen::VectorXd & q_all);
 
   std::shared_ptr<pinocchio::Model> model_ptr_;
-  std::unique_ptr<WbcSolver> wbc_solver_;
+  std::unique_ptr<RestoSolver> resto_solver_;
 
   size_t playback_idx_ = 0;
 
@@ -61,4 +61,4 @@ private:
 
 }  // namespace mlivr_control
 
-#endif  // MLIVR_CONTROL__WB_CONTROL_HPP_
+#endif  // MLIVR_CONTROL__RESTO_CONTROL_HPP_

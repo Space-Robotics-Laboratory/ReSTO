@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/wb_control.hpp"
+#include "mlivr_control/resto_control.hpp"
 
 #include <rclcpp_components/register_node_macro.hpp>
 
 namespace mlivr_control
 {
 
-WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_control", options)
+RestoControl::RestoControl(const rclcpp::NodeOptions & options)
+: BaseController("resto_control", options)
 {
   // === ROS 2 parameters ===
-  WbcSolverParams params;
+  RestoSolverParams params;
   params.solver.horizon_steps = this->declare_parameter<int>("solver.horizon_steps", 100);
   params.solver.dt = this->declare_parameter<double>("solver.dt", 0.01);
   params.solver.max_iter = this->declare_parameter<int>("solver.max_iter");
@@ -60,12 +61,12 @@ WBControl::WBControl(const rclcpp::NodeOptions & options) : BaseController("wb_c
   // ========================
 
   model_ptr_ = std::make_shared<pinocchio::Model>(robot_->getModel());
-  wbc_solver_ = std::make_unique<WbcSolver>(model_ptr_, params);
+  resto_solver_ = std::make_unique<RestoSolver>(model_ptr_, params);
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
-bool WBControl::generateTrajectory()
+bool RestoControl::generateTrajectory()
 {
   // Eigen::Vector3d offset(0.0, -0.3, 0.0);  // in world frame
   // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
@@ -93,24 +94,24 @@ bool WBControl::generateTrajectory()
     this->publishTargetTF(target_ee_pose_se3_.translation(), q_target, "target/" + ee_frames_[1]);
   }
 
-  bool success = wbc_solver_->computeTrajectory(
+  bool success = resto_solver_->computeTrajectory(
     current_base_pose_, current_base_twist_, current_joint_pos_, ee_frames_[0], ee_frames_[1],
     target_ee_pose_se3_);
 
   if (success) {
     playback_idx_ = 0;
-    RCLCPP_INFO(this->get_logger(), "WBC Trajectory optimization completed.");
+    RCLCPP_INFO(this->get_logger(), "Whole-Body Trajectory Optimization completed.");
   } else {
-    RCLCPP_ERROR(this->get_logger(), "WBC Trajectory optimization failed.");
+    RCLCPP_ERROR(this->get_logger(), "Whole-Body Trajectory Optimization failed.");
   }
 
   return success;
 }
 
-Eigen::VectorXd WBControl::computeCommandStep()
+Eigen::VectorXd RestoControl::computeCommandStep()
 {
-  const auto & optimized_xs = wbc_solver_->getOptimizedXs();
-  const auto & optimized_us = wbc_solver_->getOptimizedUs();
+  const auto & optimized_xs = resto_solver_->getOptimizedXs();
+  const auto & optimized_us = resto_solver_->getOptimizedUs();
 
   if (optimized_xs.empty()) {
     return Eigen::VectorXd::Zero(1);
@@ -158,10 +159,10 @@ Eigen::VectorXd WBControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
-std::vector<Eigen::Vector3d> WBControl::getPlannedPath()
+std::vector<Eigen::Vector3d> RestoControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
-  const auto & optimized_xs = wbc_solver_->getOptimizedXs();
+  const auto & optimized_xs = resto_solver_->getOptimizedXs();
   if (optimized_xs.empty()) {
     return path;
   }
@@ -179,7 +180,7 @@ std::vector<Eigen::Vector3d> WBControl::getPlannedPath()
   return path;
 }
 
-void WBControl::publishWaitingState()
+void RestoControl::publishWaitingState()
 {
   Eigen::VectorXd q_all = Eigen::VectorXd::Zero(model_ptr_->nq);
   q_all.head(7) = current_base_pose_;
@@ -189,7 +190,7 @@ void WBControl::publishWaitingState()
   publishPlannedRobotState(q_all);
 }
 
-void WBControl::publishPlannedRobotState(const Eigen::VectorXd & q_all)
+void RestoControl::publishPlannedRobotState(const Eigen::VectorXd & q_all)
 {
   pinocchio::Data data(*model_ptr_);
 
@@ -232,4 +233,4 @@ void WBControl::publishPlannedRobotState(const Eigen::VectorXd & q_all)
 
 }  // namespace mlivr_control
 
-RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::WBControl)
+RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::RestoControl)
