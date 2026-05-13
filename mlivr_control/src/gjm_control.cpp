@@ -26,7 +26,7 @@ GJMControl::GJMControl(const rclcpp::NodeOptions & options) : BaseController("gj
   dynamics_ = std::make_unique<fbml::Dynamics>(*robot_);
 
   target_joint_pos_.resize(num_joints_, 0.0);
-  duration_ = 10.0;
+  duration_ = 20.0;
 
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
