@@ -78,7 +78,6 @@ ament_auto_add_executable(resto_control_node
 install(
   DIRECTORY
     config
-    launch
   DESTINATION
     share/${PROJECT_NAME}/
 )
