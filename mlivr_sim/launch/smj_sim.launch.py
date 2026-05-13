@@ -67,8 +67,8 @@ def generate_launch_description():
 
     mlivr_kjc_node = Node(
         package='mlivr_control',
-        executable='kj_control_node',
-        name='mlivr_kjc',
+        executable='smj_control_node',
+        name='smj_control',
         output='screen',
         parameters=[mlivr_params]
     )

@@ -14,19 +14,19 @@ ament_auto_add_library(base_controller
   src/base_controller.cpp
 )
 
-# Kinematic Jacobian Controller
-ament_auto_add_library(kj_control
-  src/kj_control.cpp
+# Standard Manipulator Jacobian-based Controller
+ament_auto_add_library(smj_control
+  src/smj_control.cpp
 )
-target_link_libraries(kj_control
+target_link_libraries(smj_control
   base_controller
   trajectory_generator::trajectory_generator
 )
-rclcpp_components_register_nodes(kj_control
-  "mlivr_control::KJControl"
+rclcpp_components_register_nodes(smj_control
+  "mlivr_control::SMJControl"
 )
-ament_auto_add_executable(kj_control_node
-  src/kj_control_node.cpp
+ament_auto_add_executable(smj_control_node
+  src/smj_control_node.cpp
 )
 
 # Generalized Jacobian Controller

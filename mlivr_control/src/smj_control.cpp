@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/kj_control.hpp"
+#include "mlivr_control/smj_control.hpp"
 
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -20,7 +20,7 @@
 namespace mlivr_control
 {
 
-KJControl::KJControl(const rclcpp::NodeOptions & options) : BaseController("kj_control", options)
+SMJControl::SMJControl(const rclcpp::NodeOptions & options) : BaseController("smj_control", options)
 {
   kinematics_ = std::make_unique<fbml::Kinematics>(*robot_);
 
@@ -30,7 +30,7 @@ KJControl::KJControl(const rclcpp::NodeOptions & options) : BaseController("kj_c
   RCLCPP_INFO(this->get_logger(), "/%s node is constructed.", this->get_name());
 }
 
-bool KJControl::generateTrajectory()
+bool SMJControl::generateTrajectory()
 {
   int nq = robot_->getModel().nq;
   Eigen::VectorXd q = Eigen::VectorXd::Zero(nq);
@@ -87,7 +87,7 @@ bool KJControl::generateTrajectory()
   return true;
 }
 
-Eigen::VectorXd KJControl::computeCommandStep()
+Eigen::VectorXd SMJControl::computeCommandStep()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
 
@@ -153,7 +153,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
   v_stacked.head<6>() = v_target_local_L;
   v_stacked.tail<6>() = v_target_local_R;
 
-  // 3. 疑似逆行列 (Damped Least Squares) による関節速度の計算
+  // Joint angular velocity
   // double lambda = 0.0;  // Damping term for singularity avoidance
   // Eigen::MatrixXd A =
   //   J_stacked * J_stacked.transpose() + lambda * lambda * Eigen::MatrixXd::Identity(12, 12);
@@ -179,7 +179,7 @@ Eigen::VectorXd KJControl::computeCommandStep()
   return Eigen::VectorXd::Zero(1);
 }
 
-std::vector<Eigen::Vector3d> KJControl::getPlannedPath()
+std::vector<Eigen::Vector3d> SMJControl::getPlannedPath()
 {
   std::vector<Eigen::Vector3d> path;
   if (!pos_spline_) return path;
@@ -193,4 +193,4 @@ std::vector<Eigen::Vector3d> KJControl::getPlannedPath()
 
 }  // namespace mlivr_control
 
-RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::KJControl)
+RCLCPP_COMPONENTS_REGISTER_NODE(mlivr_control::SMJControl)

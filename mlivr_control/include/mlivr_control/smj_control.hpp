@@ -32,12 +32,12 @@
 namespace mlivr_control
 {
 
-class KJControl : public BaseController
+class SMJControl : public BaseController
 {
 public:
   MLIVR_CONTROL_PUBLIC
-  explicit KJControl(const rclcpp::NodeOptions & options);
-  virtual ~KJControl() = default;
+  explicit SMJControl(const rclcpp::NodeOptions & options);
+  virtual ~SMJControl() = default;
 
 protected:
   bool generateTrajectory() override;

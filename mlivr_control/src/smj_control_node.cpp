@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mlivr_control/kj_control.hpp"
+#include "mlivr_control/smj_control.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor exec;
 
-  const auto kj_control = std::make_shared<mlivr_control::KJControl>(rclcpp::NodeOptions());
+  const auto smj_control = std::make_shared<mlivr_control::SMJControl>(rclcpp::NodeOptions());
 
-  exec.add_node(kj_control);
+  exec.add_node(smj_control);
   exec.spin();
 
   return 0;
