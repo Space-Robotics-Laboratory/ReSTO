@@ -4,3 +4,6 @@
 [submodule "lib/trajectory_generator"]
 	path = lib/trajectory_generator
 	url = https://github.com/MasazumiImai/trajectory_generator.git
+[submodule "lib/RAMP"]
+	path = lib/RAMP
+	url = git@github.com:Space-Robotics-Laboratory/RAMP.git
