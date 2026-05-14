@@ -24,12 +24,12 @@
   <depend>nav_msgs</depend>
   <depend>pinocchio</depend>
   <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>std_msgs</depend>
   <depend>visualization_msgs</depend>
 
-  <depend>coordinate_transformer</depend>
   <depend>fbml</depend>
-  <depend>trajectory_generator</depend>
+  <depend>traj_gen</depend>
   <depend>ramp</depend>
 
   <test_depend>ament_lint_auto</test_depend>

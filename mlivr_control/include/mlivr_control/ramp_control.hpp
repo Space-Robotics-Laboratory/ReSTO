@@ -23,8 +23,7 @@
 
 #include "ramp/lrst/low_reaction_swing_trajectory.hpp"
 #include "ramp/md/momentum_distribution.hpp"
-#include "trajectory_generator/spline.hpp"
-#include "trajectory_generator/trajectory_generator.hpp"
+#include "traj_gen/traj_gen.hpp"
 #include <fbml/dynamics.hpp>
 #include <fbml/kinematics.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -67,8 +66,8 @@ private:
 
   std::vector<double> target_joint_pos_;
 
-  std::unique_ptr<trajectory_generator::VectorSpline> pos_spline_;
-  std::unique_ptr<trajectory_generator::OrientationSpline> ori_spline_;
+  std::unique_ptr<traj_gen::VectorSpline> pos_spline_;
+  std::unique_ptr<traj_gen::OrientationSpline> ori_spline_;
   double duration_;
   double trajectory_start_time_ = 0.0;
   bool is_trajectory_active_ = false;
