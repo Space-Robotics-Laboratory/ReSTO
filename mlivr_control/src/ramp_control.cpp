@@ -114,28 +114,28 @@ bool RAMPControl::generateTrajectory()
 
     Eigen::Vector3d mid_pos = (start_pos + target_pos) / 2.0 + swing_height;
 
-    trajectory_generator::VectorStateConstraint start_p_c{
+    traj_gen::VectorStateConstraint start_p_c{
       0.0, start_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-    trajectory_generator::VectorStateConstraint end_p_c{
+    traj_gen::VectorStateConstraint end_p_c{
       duration_, target_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-    auto pos_constraints = trajectory_generator::createBoundaryConditions(start_p_c, end_p_c);
+    auto pos_constraints = traj_gen::createBoundaryConditions(start_p_c, end_p_c);
 
-    trajectory_generator::VectorStateConstraint mid_p_c{duration_ / 2.0, mid_pos};
-    trajectory_generator::addConstraint(pos_constraints, mid_p_c);
+    traj_gen::VectorStateConstraint mid_p_c{duration_ / 2.0, mid_pos};
+    traj_gen::addConstraint(pos_constraints, mid_p_c);
 
-    pos_spline_ = std::make_unique<trajectory_generator::VectorSpline>(pos_constraints, 3);
+    pos_spline_ = std::make_unique<traj_gen::VectorSpline>(pos_constraints, 3);
   }
 
   // Generate orientation trajectory using spline
   Eigen::Quaterniond mid_quat = start_quat.slerp(0.5, target_quat);
-  trajectory_generator::AngularStateConstraint start_o_c{
+  traj_gen::AngularStateConstraint start_o_c{
     0.0, start_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-  trajectory_generator::AngularStateConstraint end_o_c{
+  traj_gen::AngularStateConstraint end_o_c{
     duration_, target_quat, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
-  auto ori_constraints = trajectory_generator::createBoundaryConditions(start_o_c, end_o_c);
-  trajectory_generator::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
-  trajectory_generator::addConstraint(ori_constraints, mid_o_c);
-  ori_spline_ = std::make_unique<trajectory_generator::OrientationSpline>(ori_constraints);
+  auto ori_constraints = traj_gen::createBoundaryConditions(start_o_c, end_o_c);
+  traj_gen::AngularStateConstraint mid_o_c{duration_ / 2.0, mid_quat};
+  traj_gen::addConstraint(ori_constraints, mid_o_c);
+  ori_spline_ = std::make_unique<traj_gen::OrientationSpline>(ori_constraints);
 
   trajectory_start_time_ = this->now().seconds();
   is_trajectory_active_ = true;

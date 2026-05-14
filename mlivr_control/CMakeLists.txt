@@ -20,7 +20,7 @@ ament_auto_add_library(smj_control
 )
 target_link_libraries(smj_control
   base_controller
-  trajectory_generator::trajectory_generator
+  traj_gen::traj_gen
 )
 rclcpp_components_register_nodes(smj_control
   "mlivr_control::SMJControl"
@@ -35,7 +35,7 @@ ament_auto_add_library(gjm_control
 )
 target_link_libraries(gjm_control
   base_controller
-  trajectory_generator::trajectory_generator
+  traj_gen::traj_gen
 )
 rclcpp_components_register_nodes(gjm_control
   "mlivr_control::GJMControl"
@@ -50,7 +50,7 @@ ament_auto_add_library(ramp_control
 )
 target_link_libraries(ramp_control
   base_controller
-  trajectory_generator::trajectory_generator
+  traj_gen::traj_gen
 )
 rclcpp_components_register_nodes(ramp_control
   "mlivr_control::RAMPControl"
@@ -66,7 +66,6 @@ ament_auto_add_library(resto_control
 )
 target_link_libraries(resto_control
   base_controller
-  trajectory_generator::trajectory_generator
 )
 rclcpp_components_register_nodes(resto_control
   "mlivr_control::RestoControl"
