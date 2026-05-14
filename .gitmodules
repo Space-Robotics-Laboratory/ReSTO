@@ -1,3 +1,6 @@
+[submodule "lib/fbml"]
+	path = lib/fbml
+	url = https://github.com/MasazumiImai/fbml.git
 [submodule "lib/trajectory_generator"]
 	path = lib/trajectory_generator
 	url = https://github.com/MasazumiImai/trajectory_generator.git
