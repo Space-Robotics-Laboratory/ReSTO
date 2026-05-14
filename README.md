@@ -1,5 +1,11 @@
 # ReSTO: Reaction-Suppression Trajectory Optimization
 
+<img src="./docs/videos/resto_sim_case2.gif" alt="resto_sim_case2.gif" width="400">
+
+## Requirements
+
+TBD.
+
 ## Installation
 
 TBD
