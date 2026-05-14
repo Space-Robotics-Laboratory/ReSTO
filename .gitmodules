@@ -1,0 +1,3 @@
+[submodule "lib/trajectory_generator"]
+	path = lib/trajectory_generator
+	url = https://github.com/MasazumiImai/trajectory_generator.git
