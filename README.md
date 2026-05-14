@@ -1,8 +1,28 @@
 # ReSTO: Reaction-Suppression Trajectory Optimization
 
+<img src="./docs/images/resto_sim_case2.gif" alt="resto_sim_case2.gif" width="400">
+
+## Requirements
+
+- Ubuntu 22.04
+- [ROS 2](https://docs.ros.org/en/humble/index.html) (Humble)
+- [MuJoCo](https://mujoco.org/) (v3.4.0)
+- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/)
+- [Crocoddyl](https://cmastalli.github.io/publications/crocoddyl20icra.html)
+
 ## Installation
 
-TBD
+```bash
+# Clone repository
+mkdir -p ~/resto_ws/src
+cd ~/resto_ws/src
+git clone https://github.com/Space-Robotics-Laboratory/ReSTO.git
+
+# Build
+cd ~/resto_ws
+colcon build --symlink-install
+source install/setup.bash
+```
 
 ## How to Run Simulations
 
@@ -26,13 +46,13 @@ TBD
       ros2 launch mlivr_sim baseline_sim.launch.py
       ```
 
-    - Generalized Jacobian Matrix (GJM)
+    - GJM (Generalized Jacobian Matrix)
 
       ```bash
       ros2 launch mlivr_sim gjm_sim.launch.py
       ```
 
-    - Reaction-Aware Motion Planning (RAMP)
+    - RAMP (Reaction-Aware Motion Planning)
 
       ```bash
       ros2 launch mlivr_sim ramp_sim.launch.py
@@ -50,4 +70,4 @@ TBD
 ## Acknowledgements
 
 This project builds upon several excellent open-source works.
-For detailed credits and licenses regarding the 3D meshes and URDF models, please see the [mlivr_description README](./src/mlivr_description/README.md).
+For detailed credits and licenses regarding the 3D meshes and URDF models, please see the [mlivr_description/README](./src/mlivr_description/README.md).
