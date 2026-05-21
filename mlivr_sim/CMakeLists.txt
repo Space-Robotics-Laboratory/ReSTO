@@ -14,13 +14,49 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-
 find_package(Eigen3 REQUIRED)
 find_package(glfw3 REQUIRED)
 
-set(MUJOCO_DIR "$ENV{HOME}/.mujoco/mujoco-3.4.0")
+find_path(MUJOCO_INCLUDE_DIR
+  NAMES mujoco/mujoco.h
+  HINTS
+    ${MUJOCO_PREFIX}/include
+    $ENV{MUJOCO_PREFIX}/include
+    $ENV{HOME}/.mujoco/mujoco-3.4.0/include
+  PATHS
+    /usr/local/include
+    /usr/include
+    /opt/mujoco/include
+)
 
-# === C++ Library ===s
+find_library(MUJOCO_LIBRARY
+  NAMES mujoco
+  HINTS
+    ${MUJOCO_PREFIX}/lib
+    $ENV{MUJOCO_PREFIX}/lib
+    $ENV{HOME}/.mujoco/mujoco-3.4.0/lib
+  PATHS
+    /usr/local/lib
+    /usr/lib
+    /opt/mujoco/lib
+)
+
+if(NOT MUJOCO_INCLUDE_DIR OR NOT MUJOCO_LIBRARY)
+  message(FATAL_ERROR "MuJoCo not found! Please specify its path using -DMUJOCO_PREFIX=/path/to/mujoco")
+endif()
+
+message(STATUS "Found MuJoCo Include: ${MUJOCO_INCLUDE_DIR}")
+message(STATUS "Found MuJoCo Library: ${MUJOCO_LIBRARY}")
+
+if(NOT TARGET mujoco::mujoco)
+  add_library(mujoco::mujoco UNKNOWN IMPORTED)
+  set_target_properties(mujoco::mujoco PROPERTIES
+    IMPORTED_LOCATION "${MUJOCO_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${MUJOCO_INCLUDE_DIR}"
+  )
+endif()
+
+# === C++ Library ===
 
 add_library(mujoco_engine_lib SHARED
   src/mujoco_engine.cpp
@@ -30,20 +66,15 @@ add_library(mujoco_engine_lib SHARED
 target_include_directories(mujoco_engine_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  ${MUJOCO_DIR}/include
-)
-
-target_link_directories(mujoco_engine_lib PUBLIC
-  ${MUJOCO_DIR}/lib
 )
 
 target_link_libraries(mujoco_engine_lib
-  mujoco
+  mujoco::mujoco
   glfw
   Eigen3::Eigen
 )
 
-set_target_properties(mujoco_engine_lib PROPERTIES INSTALL_RPATH "${MUJOCO_DIR}/lib")
+set_target_properties(mujoco_engine_lib PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # === ROS 2 Node Plugin ===
 
