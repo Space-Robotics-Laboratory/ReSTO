@@ -1,4 +1,4 @@
-# ReSTO: Reaction-Suppression Trajectory Optimization
+# ReSTO: Reaction-Suppressing Trajectory Optimization
 
 <img src="./docs/images/resto_sim_case2.gif" alt="resto_sim_case2.gif" width="400">
 
@@ -16,11 +16,17 @@
 # Clone repository
 mkdir -p ~/resto_ws/src
 cd ~/resto_ws/src
-git clone https://github.com/Space-Robotics-Laboratory/ReSTO.git
+git clone --recursive https://github.com/Space-Robotics-Laboratory/ReSTO.git
 
 # Build
 cd ~/resto_ws
+
+# If MuJoCo is installed in a standard location (e.g., /usr/local or /opt/mujoco), simply run:
 colcon build --symlink-install
+
+# If MuJoCo is installed in a custom directory (e.g., ~/.mujoco/mujoco-3.4.0), specify the prefix:
+colcon build --symlink-install --cmake-args -DMUJOCO_PREFIX=$HOME/.mujoco/mujoco-3.4.0
+
 source install/setup.bash
 ```
 
