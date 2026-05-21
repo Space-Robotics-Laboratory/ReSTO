@@ -20,7 +20,13 @@ git clone --recursive https://github.com/Space-Robotics-Laboratory/ReSTO.git
 
 # Build
 cd ~/resto_ws
+
+# If MuJoCo is installed in a standard location (e.g., /usr/local or /opt/mujoco), simply run:
 colcon build --symlink-install
+
+# If MuJoCo is installed in a custom directory (e.g., ~/.mujoco/mujoco-3.4.0), specify the prefix:
+colcon build --symlink-install --cmake-args -DMUJOCO_PREFIX=$HOME/.mujoco/mujoco-3.4.0
+
 source install/setup.bash
 ```
 
