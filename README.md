@@ -1,4 +1,4 @@
-# ReSTO: Reaction-Suppression Trajectory Optimization
+# ReSTO: Reaction-Suppressing Trajectory Optimization
 
 <img src="./docs/images/resto_sim_case2.gif" alt="resto_sim_case2.gif" width="400">
 
@@ -16,7 +16,7 @@
 # Clone repository
 mkdir -p ~/resto_ws/src
 cd ~/resto_ws/src
-git clone https://github.com/Space-Robotics-Laboratory/ReSTO.git
+git clone --recursive https://github.com/Space-Robotics-Laboratory/ReSTO.git
 
 # Build
 cd ~/resto_ws
