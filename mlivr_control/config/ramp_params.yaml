@@ -18,4 +18,4 @@ ramp_control:
       step_height_ave: 1.0
 
     # MD
-    momentum_distribution_factor: 0.5 # [0, 1]
+    momentum_distribution_factor: 1.0 # [0, 1]
