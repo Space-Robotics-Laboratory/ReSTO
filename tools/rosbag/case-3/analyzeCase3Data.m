@@ -20,7 +20,7 @@ case_id = 3;
 
 % Select one method and one uncertainty level.
 % Examples: "baseline", "gjm", "ramp-pmd", "ramp-fmd", "resto"
-method_name = "baseline";
+method_name = "gjm";
 
 % Uncertainty level in percent. Examples: 5, 10, 20
 uncertainty_percent = 10;
@@ -183,16 +183,25 @@ t_trigger_idx = find(trigger_raw == 1, 1);
 if isempty(t_trigger_idx)
     error('No control trigger was found.');
 end
-t_trigger = data.x__time(t_trigger_idx);
+if (any(strcmp(data.Properties.VariableNames, 'x__time')))
+    x__time = data.x__time;
+else
+    x__time = data.time;
+end
+t_trigger = x__time(t_trigger_idx);
 
-cmd_stamp_raw = data.(matlab.lang.makeValidName("x_joint_cmds_header_stamp"));
+if (any(strcmp(data.Properties.VariableNames, 'x_joint_cmds_header_stamp')))
+    cmd_stamp_raw = data.(matlab.lang.makeValidName("x_joint_cmds_header_stamp"));
+else
+    cmd_stamp_raw = data.(matlab.lang.makeValidName("x_joint_cmds_header_stamp_sec"));
+end
 t_motion_idx = find(~isnan(cmd_stamp_raw(:, 1)), 1);
 if isempty(t_motion_idx)
     error('No joint command timestamp was found.');
 end
-t_motion = data.x__time(t_motion_idx);
+t_motion = x__time(t_motion_idx);
 
-time_vec = data.x__time - t_motion;
+time_vec = x__time - t_motion;
 metrics.delay_s = t_motion - t_trigger;
 
 % Supporting limb reaction force and moment.
