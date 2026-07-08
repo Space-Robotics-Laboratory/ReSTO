@@ -29,7 +29,7 @@ uncertainty_percent = 10;
 % This script assumes seed IDs from seed_start to seed_end.
 % Example: seed_start = 1; seed_end = 4; analyzes seed01, seed02, seed03, seed04.
 seed_start = 0;
-seed_end = 0;
+seed_end = 4;
 
 % Case 3 uses the same swing motion as Case 1 by default.
 swing_duration = 10.0;
