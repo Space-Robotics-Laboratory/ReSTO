@@ -68,10 +68,12 @@ RestoControl::RestoControl(const rclcpp::NodeOptions & options)
 
 bool RestoControl::generateTrajectory()
 {
-  // Eigen::Vector3d offset(0.0, -0.3, 0.0);  // in world frame
-  // Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
-  Eigen::Vector3d offset(0.0, -0.7, 0.4);  // in world frame
-  Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
+  // Case 1
+  Eigen::Vector3d offset(0.0, -0.3, 0.0);  // in world frame
+  Eigen::Quaterniond rot_world_x = Eigen::Quaterniond::Identity();
+  // Case 2
+  // Eigen::Vector3d offset(0.0, -0.7, 0.4);  // in world frame
+  // Eigen::Quaterniond rot_world_x(Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()));
 
   {
     pinocchio::Data data(*model_ptr_);
