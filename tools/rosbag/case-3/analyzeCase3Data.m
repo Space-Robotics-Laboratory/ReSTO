@@ -20,10 +20,10 @@ case_id = 3;
 
 % Select one method and one uncertainty level.
 % Examples: "baseline", "gjm", "ramp-pmd", "ramp-fmd", "resto"
-method_name = "resto";
+method_name = "baseline";
 
 % Uncertainty level in percent. Examples: 5, 10, 20
-uncertainty_percent = 10;
+uncertainty_percent = 20;
 
 % Seeds to analyze.
 % This script assumes seed IDs from seed_start to seed_end.
