@@ -20,7 +20,7 @@ case_id = 3;
 
 % Select one method and one uncertainty level.
 % Examples: "baseline", "gjm", "ramp-pmd", "ramp-fmd", "resto"
-method_name = "ramp-pmd";
+method_name = "ramp-fmd";
 
 % Uncertainty level in percent. Examples: 5, 10, 20
 uncertainty_percent = 20;
