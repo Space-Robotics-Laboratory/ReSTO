@@ -2,7 +2,7 @@ build/*
 install/*
 log/*
 
-tools/rosbag/*
+# tools/rosbag/*
 !tools/rosbag/rosbag.bash
 !tools/rosbag/plotData.m
 
