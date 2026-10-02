@@ -48,8 +48,3 @@ const resto::Result result = optimizer.solve(problem);  // result.xs, result.us
 
 Joint position, velocity and effort limits are taken from the model; narrow them there to add
 margins or avoid self-collision.
-
-## Acknowledgements
-
-For the credits and licenses of the meshes and URDF models used in the original simulator, see
-the `develop` branch.
