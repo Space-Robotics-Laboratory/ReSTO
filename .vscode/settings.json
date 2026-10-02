@@ -1,6 +1,6 @@
 {
   "C_Cpp.clang_format_path": "",
-  "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format/.clang-format",
+  "C_Cpp.clang_format_style": "file",
   "C_Cpp.default.browse.databaseFilename": "null",
   "C_Cpp.errorSquiggles": "enabled",
   "C_Cpp.intelliSenseCacheSize": 1024,
