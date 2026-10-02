@@ -2,78 +2,54 @@
 
 <img src="./docs/images/resto_sim_case2.gif" alt="resto_sim_case2.gif" width="400">
 
+A pure C++ library that plans the swing motion of a free-floating multi-limbed robot while
+suppressing the reaction on its base. The swing is solved as a whole-body optimal control
+problem with [Crocoddyl](https://github.com/loco-3d/crocoddyl) (FDDP): the support limbs hold
+their grasps, the swing end effector reaches its target, and the system momentum is kept small.
+
+The standalone MuJoCo simulator used in the original study is kept on the `develop` branch.
+
 ## Requirements
 
-- Ubuntu 22.04
 - [ROS 2](https://docs.ros.org/en/humble/index.html) (Humble)
-- [MuJoCo](https://mujoco.org/) (v3.4.0)
-- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/)
-- [Crocoddyl](https://cmastalli.github.io/publications/crocoddyl20icra.html)
+- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/) (v3 or later)
+- [Crocoddyl](https://github.com/loco-3d/crocoddyl) (v3 or later)
 
 ## Installation
 
 ```bash
-# Clone repository
 mkdir -p ~/resto_ws/src
 cd ~/resto_ws/src
-git clone --recursive https://github.com/Space-Robotics-Laboratory/ReSTO.git
+git clone https://github.com/MasazumiImai/ReSTO.git
 
-# Build
 cd ~/resto_ws
-
-# If MuJoCo is installed in a standard location (e.g., /usr/local or /opt/mujoco), simply run:
-colcon build --symlink-install
-
-# If MuJoCo is installed in a custom directory (e.g., ~/.mujoco/mujoco-3.4.0), specify the prefix:
-colcon build --symlink-install --cmake-args -DMUJOCO_PREFIX=$HOME/.mujoco/mujoco-3.4.0
-
+colcon build --packages-select resto
 source install/setup.bash
 ```
 
-## How to Run Simulations
+## Usage
 
-- Terminal #1
-  - Build
+```cpp
+#include <resto/swing_optimizer.hpp>
 
-    ```bash
-    colcon build --symlink-install && . install/setup.bash
-    ```
+auto model = std::make_shared<pinocchio::Model>(/* free-flyer model, zero gravity */);
+resto::SwingOptimizer optimizer(model, resto::SolverParams(), resto::WeightParams());
 
-  - Launch simulation node
-    - ReSTO (Reaction-Suppression Trajectory Optimization)
+resto::SwingProblem problem;
+problem.x0 = x0;                                  // [q; v]
+problem.support_frames = {"limb_1_palm_link"};
+problem.support_targets = {support_placement};    // world placements to hold
+problem.swing_frame = "limb_2_palm_link";
+problem.swing_target = swing_target;              // world placement at the end
+problem.duration = 10.0;                          // [s]
 
-      ```bash
-      ros2 launch mlivr_sim resto_sim.launch.py
-      ```
+const resto::Result result = optimizer.solve(problem);  // result.xs, result.us
+```
 
-    - Baseline (Standard Manipulation Jacobian)
-
-      ```bash
-      ros2 launch mlivr_sim baseline_sim.launch.py
-      ```
-
-    - GJM (Generalized Jacobian Matrix)
-
-      ```bash
-      ros2 launch mlivr_sim gjm_sim.launch.py
-      ```
-
-    - RAMP (Reaction-Aware Motion Planning)
-
-      ```bash
-      ros2 launch mlivr_sim ramp_sim.launch.py
-      ```
-
-- Terminal #2
-
-  - Trigger simulation start
-
-    ```bash
-    . install/setup.bash
-    ros2 topic pub --once /start_control std_msgs/msg/Bool "{data: true}"
-    ```
+Joint position, velocity and effort limits are taken from the model; narrow them there to add
+margins or avoid self-collision.
 
 ## Acknowledgements
 
-This project builds upon several excellent open-source works.
-For detailed credits and licenses regarding the 3D meshes and URDF models, please see the [mlivr_description/README](./src/mlivr_description/README.md).
+For the credits and licenses of the meshes and URDF models used in the original simulator, see
+the `develop` branch.

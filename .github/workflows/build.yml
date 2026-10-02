@@ -1,0 +1,39 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build on Ubuntu (ROS 2 Humble)
+    runs-on: ubuntu-22.04
+
+    container:
+      image: ros:humble-ros-base
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: src/resto
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y libeigen3-dev ros-humble-pinocchio ros-humble-crocoddyl python3-pip ros-humble-ament-cmake-clang-format
+          # Match the clang-format version bundled with VS Code C/C++ extension
+          pip3 install clang-format==23.1.0
+
+      - name: Build the package
+        run: |
+          . /opt/ros/humble/setup.sh
+          colcon build --packages-select resto --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+      - name: Run tests
+        run: |
+          . /opt/ros/humble/setup.sh
+          colcon test --packages-select resto
+          colcon test-result --all
